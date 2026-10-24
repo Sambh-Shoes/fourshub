@@ -5,7 +5,7 @@ import { saveUser } from "./actions";
 import { PERMISSIONS, ROLE_DEFAULTS, ROLE_LABELS, type Role } from "@/lib/permissions";
 import type { Location } from "@/lib/data";
 
-type U = { id: number; name: string; username: string; role: Role; permissions: string[]; location_id: number | null; active: boolean };
+type U = { id: number; name: string; username: string; role: Role; permissions: string[]; location_id: number | null; active: boolean; weekly_hours: string | null };
 
 export function UserForm({ user, locations }: { user: U | null; locations: Location[] }) {
   const [state, action, pending] = useActionState(saveUser.bind(null, user?.id ?? null), null);
@@ -39,6 +39,7 @@ export function UserForm({ user, locations }: { user: U | null; locations: Locat
             {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
         </label>
+        <label>Contract hours per week<input key={k} name="weekly_hours" inputMode="decimal" defaultValue={v?.weekly_hours ?? user?.weekly_hours ?? ""} style={{ width: 90 }} /></label>
         <label className="check"><input key={k} type="checkbox" name="active" defaultChecked={v ? v.active === "on" : user?.active ?? true} /> Can sign in</label>
       </div>
 

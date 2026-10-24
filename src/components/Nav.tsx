@@ -9,6 +9,7 @@ export function Nav({ user, active }: { user: CurrentUser; active: string }) {
     ["/products", "Products"],
     ["/stock", "Stock"],
     ["/transfers", "Transfers"],
+    ["/hours", "Hours"],
     ...(can(user, "users.manage") ? [["/users", "Employees"]] : []),
   ];
   return (

@@ -18,6 +18,9 @@ Built with Next.js 15 and PostgreSQL (no ORM: plain SQL in `db/schema.sql`).
   Missing sizes or a new colour can be added to an existing product the same way.
 - **Transfers**: scan the pairs to send, the sending shop's stock goes down, the receiving shop
   confirms and its stock goes up.
+- **Working hours**: clock in / clock out from the home page. Managers see everyone's monthly hours,
+  correct or add entries (a reason is required and every correction is kept), and download the monthly
+  "registro de jornada" as CSV.
 - **Locations**: Gracia, Jaume I, Placidia, Shop 4 (opening Nov 2026) and the warehouse.
 
 ## Running it

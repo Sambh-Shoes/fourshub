@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { Page } from "@/components/Nav";
+import { ClockCard } from "@/components/ClockCard";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
     <Page user={user} active="/">
       {denied && <div className="notice">Your account doesn&apos;t have access to that page. Ask Maryna if you need it.</div>}
       <h1>Hello, {user.name}</h1>
+      <ClockCard user={user} />
 
       <form action="/products" className="card row">
         <label style={{ flex: 1 }}>

@@ -107,3 +107,32 @@ CREATE TABLE IF NOT EXISTS transfer_lines (
   qty         int NOT NULL CHECK (qty > 0),
   PRIMARY KEY (transfer_id, variant_id)
 );
+
+-- Working hours: every clock-in / clock-out (Spain requires a daily record, kept 4 years).
+CREATE TABLE IF NOT EXISTS time_entries (
+  id          serial PRIMARY KEY,
+  user_id     int NOT NULL REFERENCES users(id),
+  location_id int REFERENCES locations(id),
+  clock_in    timestamptz NOT NULL,
+  clock_out   timestamptz CHECK (clock_out IS NULL OR clock_out > clock_in),
+  created_by  int REFERENCES users(id),        -- someone else when a manager added it by hand
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS time_entries_user_idx ON time_entries(user_id, clock_in);
+-- Only one open entry (clocked in, not out) per person.
+CREATE UNIQUE INDEX IF NOT EXISTS time_entries_open_idx ON time_entries(user_id) WHERE clock_out IS NULL;
+
+-- Corrections are never silent: the old and new times, who changed them and why.
+CREATE TABLE IF NOT EXISTS time_entry_changes (
+  id         serial PRIMARY KEY,
+  entry_id   int NOT NULL REFERENCES time_entries(id) ON DELETE CASCADE,
+  old_in     timestamptz,
+  old_out    timestamptz,
+  new_in     timestamptz,
+  new_out    timestamptz,
+  reason     text NOT NULL,
+  changed_by int NOT NULL REFERENCES users(id),
+  changed_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS weekly_hours numeric(4,1);

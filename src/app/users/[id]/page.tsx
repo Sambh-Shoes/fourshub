@@ -14,8 +14,8 @@ export default async function EditUser({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const locations = await getLocations();
   const user = id === "new" ? null : await one<{
-    id: number; name: string; username: string; role: Role; permissions: string[]; location_id: number | null; active: boolean;
-  }>("SELECT id, name, username, role, permissions, location_id, active FROM users WHERE id = $1", [Number(id) || 0]);
+    id: number; name: string; username: string; role: Role; permissions: string[]; location_id: number | null; active: boolean; weekly_hours: string | null;
+  }>("SELECT id, name, username, role, permissions, location_id, active, weekly_hours FROM users WHERE id = $1", [Number(id) || 0]);
   if (id !== "new" && !user) notFound();
   return (
     <Page user={me} active="/users">
