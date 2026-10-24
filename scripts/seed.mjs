@@ -24,7 +24,11 @@ const username = process.env.ADMIN_USERNAME || "admin";
 const password = process.env.ADMIN_PASSWORD;
 const existing = await db.query("SELECT 1 FROM users WHERE username = $1", [username]);
 if (existing.rowCount === 0) {
-  if (!password) throw new Error("Set ADMIN_PASSWORD in .env before seeding");
+  if (!password) {
+    console.warn("No admin account yet: set ADMIN_PASSWORD (and ADMIN_USERNAME) and run this again.");
+    await db.end();
+    process.exit(0);
+  }
   await db.query(
     `INSERT INTO users (name, username, password_hash, role) VALUES ($1, $2, $3, 'admin')`,
     [username, username, await bcrypt.hash(password, 10)],

@@ -2,11 +2,11 @@
 // Run once, review/edit the "becomes" column, then run the import.
 //   node scripts/build-mapping.mjs <folder with Odoo TSVs>
 import fs from "node:fs";
-import { loadVariants } from "./lib/odoo.mjs";
+import { dirSource, loadVariants } from "./lib/odoo.mjs";
 import { cleanBox, cleanColour, cleanMaterial, cleanSize } from "./lib/clean.mjs";
 
 const dir = process.argv[2] || "odoo-data/tsv";
-const variants = loadVariants(dir).filter((v) => v.active);
+const variants = loadVariants(dirSource(dir)).filter((v) => v.active);
 
 const clean = { size: cleanSize, colour: cleanColour, material: cleanMaterial, box: cleanBox };
 const rows = new Map();

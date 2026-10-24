@@ -11,7 +11,8 @@
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed": "node scripts/seed.mjs",
     "import:odoo": "node scripts/import-odoo.mjs",
-    "mapping:build": "node scripts/build-mapping.mjs"
+    "mapping:build": "node scripts/build-mapping.mjs",
+    "vercel-build": "node scripts/migrate.mjs && node scripts/seed.mjs && next build"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

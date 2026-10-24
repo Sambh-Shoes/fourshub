@@ -15,7 +15,10 @@ export default async function Users() {
     <Page user={user} active="/users">
       <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
         <h1>Employees</h1>
-        <Link className="button" href="/users/new">Add employee</Link>
+        <span className="row">
+          {user.role === "admin" && <Link className="button secondary" href="/import">Load products from Odoo</Link>}
+          <Link className="button" href="/users/new">Add employee</Link>
+        </span>
       </div>
       <div className="table-wrap"><table>
         <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Works at</th><th></th></tr></thead>
