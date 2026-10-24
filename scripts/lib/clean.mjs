@@ -10,7 +10,7 @@ const COLOUR_WORDS = {
   budeos: "burdeos", bordeaux: "burdeos", griss: "gris", blanca: "blanco", violet: "violeta",
   silver: "plateado", plata: "plateado", gold: "dorado", oro: "dorado", khaki: "caqui",
   milk: "leche", camello: "camel", cremoso: "crema", cremosas: "crema", granada: "granate",
-  apricote: "apricot", abricot: "apricot", light: "claro", rose: "rosa", metalico: "metalizado",
+  apricote: "albaricoque", abricot: "albaricoque", apricot: "albaricoque", light: "claro", rose: "rosa", metalico: "metalizado",
   blestiasho: "brillante", beruzovi: "turquesa", leopard: "leopardo", aqua: "aguamarina",
 };
 // Whole values that mean something simpler.
@@ -33,6 +33,7 @@ export function cleanColour(raw) {
 }
 
 const MATERIAL_WORDS = {
+  cuero: "piel", // Maryna: cuero and piel are the same
   matovi: "mate", mati: "mate", textilo: "textil", cashemira: "cachemir", nachris: "piel",
   polipiel: "polipiel", "on": "con", nate: "ante",
 };
@@ -43,10 +44,9 @@ export function cleanMaterial(raw) {
   s = s.split(" ").map((w) => MATERIAL_WORDS[w] ?? w).join(" ");
   s = s.replace(/\s*-\s*/g, " y ").replace(/ mas /g, " y ").replace(/^(piel|cuero) con serraje$/, "$1 y serraje");
   if (s === "serraje y piel" || s === "serraje piel natural") s = "piel y serraje";
-  if (s === "serraje cuero") s = "cuero y serraje";
+  if (s === "serraje piel") s = "piel y serraje";
   if (s === "piel serraje") s = "piel y serraje";
-  if (s === "cuero serraje") s = "cuero y serraje";
-  const WHOLE = { "mate y cuero": "cuero mate", "serraje mat": "serraje mate", "algodon": "algodón", "serraje marron": "serraje" };
+  const WHOLE = { "mate y piel": "piel mate", "serraje mat": "serraje mate", "algodon": "algodón", "serraje marron": "serraje" };
   if (WHOLE[s]) s = WHOLE[s];
   return { value: cap(s) };
 }
@@ -63,8 +63,8 @@ export function cleanSize(raw) {
   if (/^big sizes?$/.test(s)) return { value: "Grande" };
   if (/^small sizes?$/.test(s)) return { value: "Pequeña" };
   if (/^[xsml]{1,3}$/.test(s)) return { value: s.toUpperCase() };
-  const m = s.match(/^(\d{2})(\.5)?-\d+-\d+$/);          // e.g. "36-15-31": looks like size + other numbers
-  if (m) return { value: m[1] + (m[2] ?? ""), note: "odd value, took the first number as size, please check" };
+  // Jewellery measurements such as "36-15-31" stay exactly as written (confirmed by Maryna).
+  if (/^\d+(\.\d)?-\d+-\d+$/.test(s)) return { value: raw.trim(), note: "jewellery measurement" };
   return { value: null, note: "not a size, left empty" };
 }
 
