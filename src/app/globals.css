@@ -77,3 +77,4 @@ button.secondary, .button.secondary { background: #fff; color: var(--accent); }
 
 .login { max-width: 360px; margin: 10vh auto; }
 .login form { display: flex; flex-direction: column; gap: 12px; }
+.sizebox { border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px; cursor: pointer; background: #fff; }

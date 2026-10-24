@@ -7,6 +7,7 @@ import { can } from "@/lib/permissions";
 import { compareSizes, euro } from "@/lib/sizes";
 import { Page } from "@/components/Nav";
 import { adjustStock, saveProduct } from "./actions";
+import { AddSizesForm } from "./AddSizesForm";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +15,11 @@ type Variant = { id: number; size: string | null; colour: string | null; barcode
 type StockRow = { variant_id: number; location_id: number; qty: number; box: string | null };
 
 export default async function ProductPage({ params, searchParams }: {
-  params: Promise<{ id: string }>; searchParams: Promise<{ barcode?: string }>;
+  params: Promise<{ id: string }>; searchParams: Promise<{ barcode?: string; created?: string; added?: string }>;
 }) {
   const user = await requireUser();
   const id = Number((await params).id);
-  const { barcode } = await searchParams;
+  const { barcode, created, added } = await searchParams;
   const product = await one<{
     id: number; name: string; reference: string | null; material: string | null; price: string;
     cost: string | null; active: boolean; category_id: number | null; category: string | null;
@@ -53,6 +54,8 @@ export default async function ProductPage({ params, searchParams }: {
         {[product.reference, product.category, product.material].filter(Boolean).join(" · ")}
         {" · "}<b style={{ color: "var(--text)" }}>{euro(product.price)}</b>
       </p>
+      {created && <div className="notice">Product created with {variants.length} sizes, each with its own barcode.</div>}
+      {added && <div className="notice">{added} sizes added.</div>}
       {scanned && (
         <div className="notice">
           Scanned: size <b>{scanned.size ?? "–"}</b>{scanned.colour ? `, ${scanned.colour}` : ""}. Stock: {" "}
@@ -112,6 +115,8 @@ export default async function ProductPage({ params, searchParams }: {
           </div>
         </form>
       )}
+
+      {editInfo && <AddSizesForm productId={id} locations={locations} colours={colours.filter(Boolean).join(", ")} />}
 
       {can(user, "stock.adjust") && variants.length > 0 && (
         <form action={adjustStock.bind(null, id)} className="card">

@@ -5,6 +5,7 @@ import { one, query } from "@/lib/db";
 import { getCategories, getLocations } from "@/lib/data";
 import { euro } from "@/lib/sizes";
 import { Page } from "@/components/Nav";
+import { can } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 const PAGE_SIZE = 50;
@@ -54,7 +55,10 @@ export default async function Products({ searchParams }: { searchParams: Promise
 
   return (
     <Page user={user} active="/products">
-      <h1>Products</h1>
+      <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+        <h1>Products</h1>
+        {can(user, "products.edit") && <Link className="button" href="/products/new">New product</Link>}
+      </div>
       <form className="card row">
         <label style={{ flex: 1, minWidth: 220 }}>Name, reference or barcode<input name="q" defaultValue={q} autoFocus /></label>
         <label>Category

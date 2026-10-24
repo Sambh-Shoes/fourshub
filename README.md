@@ -13,6 +13,9 @@ Built with Next.js 15 and PostgreSQL (no ORM: plain SQL in `db/schema.sql`).
   and a size grid showing how many pairs of each size are in each shop and the warehouse.
 - **Stock**: pairs per variant per location. The storage box number is a field on the stock row,
   not a variant. Every change is logged in `stock_moves` with who made it.
+- **New products in one step**: name, price, colours and a size range (presets like "Women 36–40"),
+  with starting pairs per colour and size. Every size gets its own EAN-13 barcode (200… in-store range).
+  Missing sizes or a new colour can be added to an existing product the same way.
 - **Transfers**: scan the pairs to send, the sending shop's stock goes down, the receiving shop
   confirms and its stock goes up.
 - **Locations**: Gracia, Jaume I, Placidia, Shop 4 (opening Nov 2026) and the warehouse.
