@@ -1,0 +1,30 @@
+{
+  "name": "fourshub",
+  "version": "0.1.0",
+  "private": true,
+  "description": "4 Seasons Shoes: shops, warehouse, products and stock in one place",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "node scripts/migrate.mjs",
+    "db:seed": "node scripts/seed.mjs",
+    "import:odoo": "node scripts/import-odoo.mjs",
+    "mapping:build": "node scripts/build-mapping.mjs"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "next": "^15.5.28",
+    "pg": "^8.23.1",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^5.9.3"
+  }
+}
