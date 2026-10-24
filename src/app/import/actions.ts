@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { requireUser } from "@/lib/auth";
-import { pool } from "@/lib/db";
+import { connectReady } from "@/lib/db";
 import { readTgz } from "@/lib/tar";
 // Plain JavaScript module shared with the command-line import.
 import { textSource } from "../../../scripts/lib/odoo.mjs";
@@ -18,7 +18,7 @@ export async function importOdoo(_prev: ImportState, form: FormData): Promise<Im
   if (!(file instanceof File) || file.size === 0) return { error: "Choose the file first." };
   if (form.get("confirm") !== "on") return { error: "Tick the box to confirm." };
 
-  const client = await pool.connect();
+  const client = await connectReady();
   try {
     const files = readTgz(Buffer.from(await file.arrayBuffer()));
     const mapping = fs.readFileSync(path.join(process.cwd(), "mapping/attributes.csv"), "utf8");

@@ -2,7 +2,7 @@
 import bcrypt from "bcryptjs";
 import { connect } from "./env.mjs";
 
-if (!process.env.DATABASE_URL) {
+if (!(process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? process.env.DATABASE_URL_UNPOOLED)) {
   console.warn("DATABASE_URL is not set: skipping shops and admin account.");
   process.exit(0);
 }
