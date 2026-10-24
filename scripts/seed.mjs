@@ -2,6 +2,11 @@
 import bcrypt from "bcryptjs";
 import { connect } from "./env.mjs";
 
+if (!process.env.DATABASE_URL) {
+  console.warn("DATABASE_URL is not set: skipping shops and admin account.");
+  process.exit(0);
+}
+
 const LOCATIONS = [
   ["GRA", "Gracia", "shop", 1],
   ["JAU", "Jaume I", "shop", 2],
