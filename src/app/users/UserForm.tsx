@@ -8,7 +8,9 @@ import type { Location } from "@/lib/data";
 type U = { id: number; name: string; username: string; role: Role; permissions: string[]; location_id: number | null; active: boolean };
 
 export function UserForm({ user, locations }: { user: U | null; locations: Location[] }) {
-  const [error, action, pending] = useActionState(saveUser.bind(null, user?.id ?? null), null);
+  const [state, action, pending] = useActionState(saveUser.bind(null, user?.id ?? null), null);
+  const v = state?.values;
+  const k = state ? JSON.stringify(state) : "init";
   const [role, setRole] = useState<Role>(user?.role ?? "shop");
   const [perms, setPerms] = useState<string[]>(user?.permissions ?? ROLE_DEFAULTS.shop);
 
@@ -20,8 +22,8 @@ export function UserForm({ user, locations }: { user: U | null; locations: Locat
   return (
     <form action={action} className="card">
       <div className="row">
-        <label>Full name<input name="name" defaultValue={user?.name} required /></label>
-        <label>Username (to sign in)<input name="username" defaultValue={user?.username} required autoCapitalize="none" /></label>
+        <label>Full name<input key={k} name="name" defaultValue={v?.name ?? user?.name} required /></label>
+        <label>Username (to sign in)<input key={k} name="username" defaultValue={v?.username ?? user?.username} required autoCapitalize="none" /></label>
         <label>{user ? "New password (leave empty to keep)" : "Password"}<input name="password" type="password" autoComplete="new-password" /></label>
       </div>
       <p />
@@ -32,12 +34,12 @@ export function UserForm({ user, locations }: { user: U | null; locations: Locat
           </select>
         </label>
         <label>Works at
-          <select name="location_id" defaultValue={user?.location_id ?? ""}>
+          <select key={k} name="location_id" defaultValue={v?.location_id ?? user?.location_id ?? ""}>
             <option value="">All places</option>
             {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
         </label>
-        <label className="check"><input type="checkbox" name="active" defaultChecked={user?.active ?? true} /> Can sign in</label>
+        <label className="check"><input key={k} type="checkbox" name="active" defaultChecked={v ? v.active === "on" : user?.active ?? true} /> Can sign in</label>
       </div>
 
       <h2>What this person can do</h2>
@@ -54,7 +56,7 @@ export function UserForm({ user, locations }: { user: U | null; locations: Locat
         ))
       )}
       {role === "admin" && Object.keys(PERMISSIONS).map((k) => <input key={k} type="hidden" name={`perm:${k}`} value="on" />)}
-      {error && <p className="error">{error}</p>}
+      {state?.error && <p className="error">{state.error}</p>}
       <p><button disabled={pending}>Save</button></p>
     </form>
   );

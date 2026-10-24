@@ -19,7 +19,9 @@ export default async function Products({ searchParams }: { searchParams: Promise
 
   // A scanned barcode goes straight to its product.
   if (q && /^\d{6,}$/.test(q)) {
-    const hit = await one<{ product_id: number }>("SELECT product_id FROM variants WHERE barcode = $1", [q]);
+    const hit = await one<{ product_id: number }>(
+      `SELECT product_id FROM variants WHERE barcode = $1
+        OR id = (SELECT variant_id FROM barcode_aliases WHERE barcode = $1) LIMIT 1`, [q]);
     if (hit) redirect(`/products/${hit.product_id}?barcode=${q}`);
   }
 

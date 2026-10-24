@@ -61,6 +61,12 @@ CREATE TABLE IF NOT EXISTS variants (
 );
 CREATE INDEX IF NOT EXISTS variants_product_idx ON variants(product_id);
 
+-- Extra barcodes that also find a variant (e.g. old labels from Odoo duplicates).
+CREATE TABLE IF NOT EXISTS barcode_aliases (
+  barcode    text PRIMARY KEY,
+  variant_id int NOT NULL REFERENCES variants(id) ON DELETE CASCADE
+);
+
 -- How many pairs of each variant are in each location, and which box they are in.
 CREATE TABLE IF NOT EXISTS stock (
   variant_id  int NOT NULL REFERENCES variants(id) ON DELETE CASCADE,

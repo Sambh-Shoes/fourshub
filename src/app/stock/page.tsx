@@ -24,7 +24,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
        FROM stock s JOIN variants v ON v.id = s.variant_id JOIN products p ON p.id = v.product_id
       WHERE s.location_id = $1 AND s.qty > 0
         AND ($2 = '' OR p.name ILIKE '%' || $2 || '%' OR p.reference ILIKE '%' || $2 || '%' OR s.box = $2)
-      GROUP BY p.id, v.colour ORDER BY p.name, v.colour LIMIT 500`,
+      GROUP BY p.id, v.colour ORDER BY p.name, v.colour LIMIT 2000`,
     [locId, q],
   );
   const total = rows.reduce((n, r) => n + Number(r.pairs), 0);
@@ -41,7 +41,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
         <label style={{ flex: 1 }}>Name, reference or box number<input name="q" defaultValue={q} /></label>
         <button>Show</button>
       </form>
-      <p className="muted">{rows.length} models/colours · {total.toLocaleString("es-ES")} pairs{rows.length === 500 ? " (first 500 shown, search to narrow)" : ""}</p>
+      <p className="muted">{rows.length} models/colours · {total.toLocaleString("es-ES")} pairs{rows.length === 2000 ? " (first 2000 shown, search to narrow)" : ""}</p>
       <div className="table-wrap"><table>
         <thead><tr><th>Model</th><th>Colour</th><th>Sizes available (pairs)</th><th>Box</th><th className="num">Pairs</th></tr></thead>
         <tbody>

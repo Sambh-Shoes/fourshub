@@ -10,7 +10,7 @@ import { adjustStock, saveProduct } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-type Variant = { id: number; size: string | null; colour: string | null; barcode: string | null; price: string | null; active: boolean };
+type Variant = { id: number; size: string | null; colour: string | null; barcode: string | null; aliases: string | null; price: string | null; active: boolean };
 type StockRow = { variant_id: number; location_id: number; qty: number; box: string | null };
 
 export default async function ProductPage({ params, searchParams }: {
@@ -29,7 +29,10 @@ export default async function ProductPage({ params, searchParams }: {
   const [locations, categories, variants, stock] = await Promise.all([
     getLocations(),
     getCategories(),
-    query<Variant>("SELECT id, size, colour, barcode, price, active FROM variants WHERE product_id = $1", [id]),
+    query<Variant>(
+      `SELECT id, size, colour, barcode, price, active,
+              (SELECT string_agg(barcode, ', ') FROM barcode_aliases a WHERE a.variant_id = v.id) AS aliases
+         FROM variants v WHERE product_id = $1`, [id]),
     query<StockRow>(
       `SELECT s.variant_id, s.location_id, s.qty, s.box FROM stock s JOIN variants v ON v.id = s.variant_id
         WHERE v.product_id = $1`, [id]),
@@ -37,7 +40,7 @@ export default async function ProductPage({ params, searchParams }: {
   variants.sort((a, b) => (a.colour ?? "").localeCompare(b.colour ?? "") || compareSizes(a.size, b.size));
   const stockOf = (v: number, l: number) => stock.find((s) => s.variant_id === v && s.location_id === l);
   const colours = [...new Set(variants.map((v) => v.colour ?? ""))];
-  const scanned = variants.find((v) => v.barcode === barcode);
+  const scanned = variants.find((v) => v.barcode === barcode || v.aliases?.split(", ").includes(barcode ?? ""));
 
   const editInfo = can(user, "products.edit");
   const editPrice = can(user, "prices.edit");
@@ -138,7 +141,7 @@ export default async function ProductPage({ params, searchParams }: {
         <tbody>
           {variants.map((v) => (
             <tr key={v.id} style={v.barcode === barcode ? { background: "var(--warn-soft)" } : {}}>
-              <td>{v.colour}</td><td>{v.size}</td><td><code>{v.barcode}</code></td>
+              <td>{v.colour}</td><td>{v.size}</td><td><code>{v.barcode}</code>{v.aliases && <div className="muted small">also: {v.aliases}</div>}</td>
               <td className="num">{euro(v.price ?? product.price)}</td>
             </tr>
           ))}

@@ -9,12 +9,17 @@ import { transaction } from "@/lib/db";
  * Sending takes the pairs out of the sending location straight away (they are "on the way").
  * Receiving puts them into the receiving location.
  */
-export async function createTransfer(_prev: string | null, form: FormData) {
+export type TransferFormState = { error: string; values: Record<string, string> } | null;
+
+export async function createTransfer(_prev: TransferFormState, form: FormData): Promise<TransferFormState> {
+  // Hand the typed values back on error, so nobody has to scan everything again.
+  const values = Object.fromEntries(["from", "to", "note", "barcodes"].map((k) => [k, String(form.get(k) ?? "")]));
+  const fail = (error: string) => ({ error, values });
   const user = await requireUser("transfers.create");
   const from = Number(form.get("from"));
   const to = Number(form.get("to"));
   const note = String(form.get("note") ?? "").trim();
-  if (!from || !to || from === to) return "Choose two different places.";
+  if (!from || !to || from === to) return fail("Choose two different places.");
 
   // One scan per line; a line can also be "barcode x3" or "barcode 3".
   const wanted = new Map<string, number>();
@@ -23,7 +28,7 @@ export async function createTransfer(_prev: string | null, form: FormData) {
     if (!m) continue;
     wanted.set(m[1], (wanted.get(m[1]) ?? 0) + (m[2] ? Number(m[2]) : 1));
   }
-  if (wanted.size === 0) return "Scan at least one shoe.";
+  if (wanted.size === 0) return fail("Scan at least one shoe.");
 
   let id = 0;
   try {
@@ -35,7 +40,8 @@ export async function createTransfer(_prev: string | null, form: FormData) {
           `SELECT v.id, p.name || ' ' || coalesce(v.colour, '') || ' ' || coalesce(v.size, '') AS label, s.qty
              FROM variants v JOIN products p ON p.id = v.product_id
              LEFT JOIN stock s ON s.variant_id = v.id AND s.location_id = $2
-            WHERE v.barcode = $1 FOR UPDATE OF v`,
+            WHERE v.barcode = $1 OR v.id = (SELECT variant_id FROM barcode_aliases WHERE barcode = $1)
+              FOR UPDATE OF v`,
           [barcode, from],
         );
         const v = r.rows[0];
@@ -60,7 +66,7 @@ export async function createTransfer(_prev: string | null, form: FormData) {
       return tid;
     });
   } catch (err) {
-    return err instanceof Error ? err.message : "Could not save the transfer.";
+    return fail(err instanceof Error ? err.message : "Could not save the transfer.");
   }
   revalidatePath("/transfers");
   redirect(`/transfers/${id}`);
