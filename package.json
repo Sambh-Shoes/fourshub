@@ -4,15 +4,15 @@
   "private": true,
   "description": "4 Seasons Shoes: shops, warehouse, products and stock in one place",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node scripts/embed-files.mjs && next dev",
+    "build": "node scripts/embed-files.mjs && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed": "node scripts/seed.mjs",
     "import:odoo": "node scripts/import-odoo.mjs",
-    "mapping:build": "node scripts/build-mapping.mjs",
-    "vercel-build": "node scripts/migrate.mjs && node scripts/seed.mjs && next build"
+    "mapping:build": "node scripts/build-mapping.mjs && node scripts/embed-files.mjs",
+    "vercel-build": "node scripts/migrate.mjs && node scripts/seed.mjs && node scripts/embed-files.mjs && next build"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

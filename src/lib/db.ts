@@ -1,11 +1,20 @@
-import fs from "node:fs";
-import path from "node:path";
 import bcrypt from "bcryptjs";
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
+import { SCHEMA_SQL } from "@/generated/files";
 
-// Vercel's Neon integration may name the connection string differently depending on how it was linked.
-export const DATABASE_URL =
-  process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? process.env.DATABASE_URL_UNPOOLED ?? process.env.POSTGRES_PRISMA_URL;
+// Vercel's Neon integration may name the connection string differently depending on how it was linked
+// (with a custom prefix it becomes e.g. STORAGE_DATABASE_URL), so look for any of those names.
+function findDatabaseUrl() {
+  const env = process.env;
+  const preferred = ["DATABASE_URL", "POSTGRES_URL", "DATABASE_URL_UNPOOLED", "POSTGRES_PRISMA_URL"];
+  for (const k of preferred) if (env[k]?.startsWith("postgres")) return env[k];
+  for (const suffix of preferred) {
+    const key = Object.keys(env).find((k) => k.endsWith(`_${suffix}`) && env[k]?.startsWith("postgres"));
+    if (key) return env[key];
+  }
+  return undefined;
+}
+export const DATABASE_URL = findDatabaseUrl();
 
 const globalForPool = globalThis as unknown as { pool?: Pool; ready?: Promise<void> };
 
@@ -29,7 +38,7 @@ async function setup() {
   const client = await pool.connect();
   try {
     await client.query("SELECT pg_advisory_lock(424242)");
-    await client.query(fs.readFileSync(path.join(process.cwd(), "db/schema.sql"), "utf8"));
+    await client.query(SCHEMA_SQL);
     for (const [code, name, kind, sort] of LOCATIONS) {
       await client.query(
         "INSERT INTO locations (code, name, kind, sort) VALUES ($1, $2, $3, $4) ON CONFLICT (code) DO NOTHING",
@@ -45,6 +54,14 @@ async function setup() {
     await client.query("SELECT pg_advisory_unlock(424242)").catch(() => {});
     client.release();
   }
+}
+
+/** A short, safe explanation of a database error for the login screen (never shows the password). */
+export function describeDbError(err: unknown) {
+  if (!DATABASE_URL) return "No database is connected to this site yet.";
+  const e = err as { code?: string; message?: string };
+  const msg = (e?.message ?? String(err)).replace(/postgres(ql)?:\/\/\S+/g, "[database address]").slice(0, 200);
+  return e?.code ? `${e.code}: ${msg}` : msg;
 }
 
 function ready() {

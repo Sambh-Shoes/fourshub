@@ -1,10 +1,9 @@
 "use server";
 
-import fs from "node:fs";
-import path from "node:path";
 import { requireUser } from "@/lib/auth";
 import { connectReady } from "@/lib/db";
 import { readTgz } from "@/lib/tar";
+import { MAPPING_CSV } from "@/generated/files";
 // Plain JavaScript module shared with the command-line import.
 import { textSource } from "../../../scripts/lib/odoo.mjs";
 import { runImport } from "../../../scripts/lib/importer.mjs";
@@ -21,8 +20,7 @@ export async function importOdoo(_prev: ImportState, form: FormData): Promise<Im
   const client = await connectReady();
   try {
     const files = readTgz(Buffer.from(await file.arrayBuffer()));
-    const mapping = fs.readFileSync(path.join(process.cwd(), "mapping/attributes.csv"), "utf8");
-    const s = await runImport(client, textSource(files), mapping, { replace: true });
+    const s = await runImport(client, textSource(files), MAPPING_CSV, { replace: true });
     const pairs = Object.entries(s.pairs as Record<string, number>).map(([k, n]) => `${k} ${n}`).join(", ");
     return { summary: `Loaded ${s.products} products and ${s.variants} sizes. Pairs: ${pairs}.` };
   } catch (err) {
