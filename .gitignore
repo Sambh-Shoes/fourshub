@@ -1,0 +1,9 @@
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+.env
+.env.local
+# Odoo exports contain customer data: never commit them
+odoo-data/
+*.tsv
