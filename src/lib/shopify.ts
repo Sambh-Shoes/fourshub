@@ -37,11 +37,13 @@ async function getToken(cfg: ShopifyConfig) {
   if (cached && cached.expiresAt - Date.now() > 5 * 60_000) return cached.token;
   const res = await fetch(`https://${cfg.store}/admin/oauth/access_token`, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
     body: new URLSearchParams({ grant_type: "client_credentials", client_id: cfg.clientId, client_secret: cfg.clientSecret }),
   });
   if (!res.ok) {
-    throw new Error(`Shopify did not give a token (${res.status}). Check SHOPIFY_STORE, SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET, and that the app is installed on the store.`);
+    // Shopify says why in a short message, for example "Missing or invalid client secret". It never echoes the secret.
+    const why = await res.json().then((b: { error_description?: string }) => b.error_description, () => undefined);
+    throw new Error(`Shopify did not give a token (${res.status}${why ? `: ${why}` : ""}). Check SHOPIFY_STORE, SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET, and that the app is installed on the store.`);
   }
   const body = (await res.json()) as { access_token: string; expires_in: number };
   globalForToken.shopifyToken = { token: body.access_token, expiresAt: Date.now() + body.expires_in * 1000 };
