@@ -79,6 +79,7 @@ export function loadVariants(source) {
     id: Number(p.id),
     templateId: Number(p.product_tmpl_id),
     barcode: p.barcode?.trim() || null,
+    sku: p.default_code?.trim() || null,
     active: p.active === "t",
     attributes: (combos.get(p.id) ?? []).map((a) => ({ ...a, kind: attributeKind(a.attribute) })),
   }));
