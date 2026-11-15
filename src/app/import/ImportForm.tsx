@@ -7,7 +7,7 @@ export function ImportForm() {
   const [state, action, pending] = useActionState(importOdoo, null);
   return (
     <form action={action} className="card">
-      <label>The Odoo file (odoo-products-stock.tgz, in your Downloads folder, inside "fourshub-import")
+      <label>The Odoo file (a .tgz with the product, variant, attribute, category and stock tables, for example fourshub-odoo-products-2026-10-23-clean.tgz)
         <input type="file" name="file" accept=".tgz,.gz,application/gzip" required />
       </label>
       <p />
