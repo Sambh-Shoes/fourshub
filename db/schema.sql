@@ -136,3 +136,8 @@ CREATE TABLE IF NOT EXISTS time_entry_changes (
 );
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS weekly_hours numeric(4,1);
+
+-- The SKU is Odoo's variant code (4SSxxxxx). Shopify uses the same value as the variant SKU,
+-- so it is the key that matches a fourshub variant to a Shopify variant.
+ALTER TABLE variants ADD COLUMN IF NOT EXISTS sku text;
+CREATE INDEX IF NOT EXISTS variants_sku_idx ON variants(sku);

@@ -110,7 +110,7 @@ export async function runImport(db, source, mappingCsv, { replace = false } = {}
       let barcode = main.barcode;
       if (barcode && seenBarcodes.has(barcode)) { barcode = null; stats.duplicateBarcodes++; }
       if (barcode) seenBarcodes.add(barcode);
-      variantRows.push({ odoo_id: main.id, template: tid, size: main.size, colour: main.colour, barcode, active: group.some((v) => v.active) });
+      variantRows.push({ odoo_id: main.id, template: tid, size: main.size, colour: main.colour, barcode, sku: main.sku, active: group.some((v) => v.active) });
       for (const extra of group.slice(1)) {
         stats.merged++;
         if (extra.barcode && !seenBarcodes.has(extra.barcode)) {
@@ -162,13 +162,14 @@ export async function runImport(db, source, mappingCsv, { replace = false } = {}
        products.map((p) => p.price), products.map((p) => p.active), products.map((p) => p.odoo_id)]);
 
     await db.query(
-      `INSERT INTO variants (product_id, size, colour, barcode, active, odoo_id)
-       SELECT p.id, v.size, v.colour, v.barcode, v.active, v.odoo_id
-         FROM unnest($1::int[], $2::text[], $3::text[], $4::text[], $5::bool[], $6::int[])
-              AS v(template, size, colour, barcode, active, odoo_id)
+      `INSERT INTO variants (product_id, size, colour, barcode, sku, active, odoo_id)
+       SELECT p.id, v.size, v.colour, v.barcode, v.sku, v.active, v.odoo_id
+         FROM unnest($1::int[], $2::text[], $3::text[], $4::text[], $5::bool[], $6::int[], $7::text[])
+              AS v(template, size, colour, barcode, active, odoo_id, sku)
          JOIN products p ON p.odoo_id = v.template`,
       [variantRows.map((v) => v.template), variantRows.map((v) => v.size), variantRows.map((v) => v.colour),
-       variantRows.map((v) => v.barcode), variantRows.map((v) => v.active), variantRows.map((v) => v.odoo_id)]);
+       variantRows.map((v) => v.barcode), variantRows.map((v) => v.active), variantRows.map((v) => v.odoo_id),
+       variantRows.map((v) => v.sku)]);
 
     await db.query(
       `INSERT INTO barcode_aliases (barcode, variant_id)

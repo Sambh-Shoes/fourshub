@@ -11,6 +11,7 @@ export function Nav({ user, active }: { user: CurrentUser; active: string }) {
     ["/transfers", "Transfers"],
     ["/hours", "Hours"],
     ...(can(user, "users.manage") ? [["/users", "Employees"]] : []),
+    ...(user.role === "admin" ? [["/shopify", "Shopify"]] : []),
   ];
   return (
     <nav className="top">

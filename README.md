@@ -51,3 +51,23 @@ npm run import:odoo -- odoo-data/tsv --replace   # wipes products/stock and load
 Color / Colore..., Material / Matreial..., Box) become one clean Size, Colour, Material and box number.
 Edit the `becomes` column and re-run the import to change a value.
 Odoo stock locations are mapped in `scripts/import-odoo.mjs` (`LOCATION_MAP`).
+
+## Shopify (www.fours.es)
+
+Step 1 only reads: the **Shopify** page (owner only) compares fourshub with the online shop and lists
+what differs. Nothing is sent to Shopify yet. Items match by **SKU** (Odoo's variant code, `4SSxxxxx`,
+which is also the SKU in Shopify); `variants.sku` is filled by the Odoo import.
+
+Access is an app made in the Shopify **Dev Dashboard** (dev.shopify.com), installed on the store. It
+swaps its client id and secret for a token that lasts 24 hours. Set these in Vercel
+(Settings → Environment Variables, Production and Preview) and redeploy:
+
+| Variable | Value |
+| --- | --- |
+| `SHOPIFY_STORE` | the store's own address, `4ea349.myshopify.com` |
+| `SHOPIFY_CLIENT_ID` | from the app in the Dev Dashboard |
+| `SHOPIFY_CLIENT_SECRET` | from the app in the Dev Dashboard (secret) |
+
+The app needs the read scopes `read_products`, `read_inventory` and `read_locations`.
+Shopify locations are linked to shops in `src/lib/shopifyCompare.ts` (`SHOPIFY_LOCATIONS`):
+Fours Shoes = Gracia, Fours Jaume = Jaume I, Fours Galla Placidia = Placidia, Warehouse = warehouse.
