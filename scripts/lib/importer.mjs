@@ -142,6 +142,8 @@ export async function runImport(db, source, mappingCsv, { replace = false } = {}
     const existing = (await db.query("SELECT count(*)::int AS n FROM products")).rows[0].n;
     if (existing && !replace) throw new Error(`There are already ${existing} products. Use "replace" to wipe and reload products and stock.`);
     if (replace) {
+    const live = await db.query("SELECT 1 FROM sales WHERE source = 'till' LIMIT 1");
+    if (live.rowCount) throw new Error("fourshub already has sales rung up at the till, and loading products from Odoo would replace the stock they changed. It is blocked.");
       await db.query("TRUNCATE transfer_lines, transfers, stock_moves, stock, barcode_aliases, variants, products, categories RESTART IDENTITY");
     }
     for (const [odooId, code] of Object.entries(LOCATION_MAP)) {

@@ -113,3 +113,32 @@ Make both import files from a backup's `dump.sql` (one command, no hidden macOS 
 It writes `odoo-products.tgz` (for "Load products from Odoo") and `odoo-sales.tgz` (for "Customers and sales") into `odoo-files/`. The files hold customer data: git ignores them, keep them off shared drives.
 
 The **Sales** screen (monthly totals per shop, VAT, cash and card, and a CSV per month for the accountant) and the **Customers** screen need the permission `reports.view` (owner always; managers by default).
+
+## The till
+
+The **Till** screen rings up sales in the shop: scan a barcode (or type a name, reference or SKU), set a discount,
+attach a customer, take cash and/or card, print the ticket. Prices come from the database, never from the browser.
+
+- **Money:** whole cents, prices include 21% VAT (`src/lib/till.ts`, shared by the screen and the server).
+- **Discounts:** quick buttons 5, 10, 15, 20, 30, 40, 50, 70 percent. Above 30% needs a manager: they sign in at the
+  till with their own login (permission `discounts.high`), and their id is saved on the ticket.
+- **Loyalty ("Fours Loyalty" in Odoo):** a customer earns 0.5 points per euro paid; 100 points take 10 euros off.
+  Every change is in `loyalty_moves`.
+- **Card:** the customer pays on the separate card terminal and staff record the amount. No terminal link yet.
+- **Ticket:** 80 mm, printed through the browser's print dialog. Company name and CIF are Odoo's; set
+  `RECEIPT_ADDRESS` (and optionally `RECEIPT_COMPANY`, `RECEIPT_NIF`) in Vercel to change what prints.
+- **Ticket numbers:** one run per shop and year, `GRA/2026/000001`, handed out inside the sale's transaction.
+  Confirm with the accountant that this series suits the simplified invoices.
+- **A sale** is saved in one transaction: ticket, lines, payments, the pairs leaving that shop's stock (never below
+  zero; if the system had fewer pairs than were sold the screen says so), and the loyalty points. A double click never
+  sells twice (`till_ref`). The ticket as printed is kept in `sales.receipt` for reprints.
+
+**Practice mode.** The till only saves when `TILL_LIVE=on` in Vercel. Without it, everything works and tickets print
+marked PRACTICE, but nothing is written. Turn it on the day the shops stop using Odoo.
+
+**After it is live**, loading products or the Odoo sales history again is blocked, because it would delete real sales.
+
+Not built yet: refunds and exchanges, reprinting an old ticket, the end-of-day cash count, gift cards,
+the card terminal link, direct thermal-printer drivers.
+
+Permissions: `till.use` (shop staff and managers by default), `discounts.high` (managers by default).
