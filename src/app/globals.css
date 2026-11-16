@@ -81,7 +81,9 @@ button.secondary, .button.secondary { background: #fff; color: var(--accent); }
 
 /* The till */
 .till { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
-.till-main, .till-side { min-width: 0; }
+.till > .notice { grid-column: 1 / -1; margin: 0; }
+.till-main, .till-side { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.till-main > .card, .till-side > .card { margin: 0; }
 .till-total { font-size: 40px; font-weight: 800; line-height: 1.1; }
 .till-change { font-size: 22px; font-weight: 700; color: var(--accent); }
 .till-pay { width: 100%; font-size: 22px; padding: 14px; margin-top: 8px; }
