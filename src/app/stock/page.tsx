@@ -4,11 +4,13 @@ import { query } from "@/lib/db";
 import { getLocations } from "@/lib/data";
 import { compareSizes } from "@/lib/sizes";
 import { Page } from "@/components/Nav";
+import { getT } from "@/lib/lang";
 
 export const dynamic = "force-dynamic";
 
 export default async function StockPage({ searchParams }: { searchParams: Promise<{ loc?: string; q?: string }> }) {
   const user = await requireUser();
+  const t = await getT();
   const sp = await searchParams;
   const locations = await getLocations();
   const locId = Number(sp.loc) || user.location_id || locations[0]?.id;
@@ -31,19 +33,19 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
 
   return (
     <Page user={user} active="/stock">
-      <h1>Stock</h1>
+      <h1>{t("Stock")}</h1>
       <form className="card row">
-        <label>Where
+        <label>{t("Where")}
           <select name="loc" defaultValue={locId}>
             {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
         </label>
-        <label style={{ flex: 1 }}>Name, reference or box number<input name="q" defaultValue={q} /></label>
-        <button>Show</button>
+        <label style={{ flex: 1 }}>{t("Name, reference or box number")}<input name="q" defaultValue={q} /></label>
+        <button>{t("Show")}</button>
       </form>
-      <p className="muted">{rows.length} models/colours · {total.toLocaleString("es-ES")} pairs{rows.length === 2000 ? " (first 2000 shown, search to narrow)" : ""}</p>
+      <p className="muted">{t("{n} models/colours", { n: rows.length })} · {t("{n} pairs", { n: total.toLocaleString("es-ES") })}{rows.length === 2000 ? ` ${t("(first 2000 shown, search to narrow)")}` : ""}</p>
       <div className="table-wrap"><table>
-        <thead><tr><th>Model</th><th>Colour</th><th>Sizes available (pairs)</th><th>Box</th><th className="num">Pairs</th></tr></thead>
+        <thead><tr><th>{t("Model")}</th><th>{t("Colour")}</th><th>{t("Sizes available (pairs)")}</th><th>{t("Box")}</th><th className="num">{t("Pairs")}</th></tr></thead>
         <tbody>
           {rows.map((r) => {
             const sizes = [...r.sizes].sort((a, b) => compareSizes(a.size, b.size));
@@ -58,7 +60,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
               </tr>
             );
           })}
-          {rows.length === 0 && <tr><td colSpan={5} className="muted">No stock here.</td></tr>}
+          {rows.length === 0 && <tr><td colSpan={5} className="muted">{t("No stock here.")}</td></tr>}
         </tbody>
       </table></div>
     </Page>

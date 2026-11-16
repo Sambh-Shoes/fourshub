@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { one, query } from "@/lib/db";
 import { can } from "@/lib/permissions";
 import { Page } from "@/components/Nav";
+import { getT } from "@/lib/lang";
 import { cancelTransfer, receiveTransfer } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,7 @@ const STATUS = { sent: "On the way", received: "Received", cancelled: "Cancelled
 
 export default async function TransferPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
+  const tr = await getT();
   const id = Number((await params).id);
   const t = await one<{
     id: number; from_name: string; to_name: string; status: keyof typeof STATUS; note: string | null;
@@ -29,18 +31,18 @@ export default async function TransferPage({ params }: { params: Promise<{ id: s
 
   return (
     <Page user={user} active="/transfers">
-      <p className="small"><Link href="/transfers">← All transfers</Link></p>
-      <h1>Transfer #{t.id}: {t.from_name} → {t.to_name}</h1>
+      <p className="small"><Link href="/transfers">← {tr("All transfers")}</Link></p>
+      <h1>{tr("Transfer")} #{t.id}: {t.from_name} → {t.to_name}</h1>
       <p>
-        <span className={`badge ${t.status === "sent" ? "warn" : t.status === "cancelled" ? "off" : ""}`}>{STATUS[t.status]}</span>{" "}
+        <span className={`badge ${t.status === "sent" ? "warn" : t.status === "cancelled" ? "off" : ""}`}>{tr(STATUS[t.status])}</span>{" "}
         <span className="muted small">
-          Sent {t.created_at.toLocaleString("es-ES")}{t.by ? ` by ${t.by}` : ""}
-          {t.received_at ? ` · ${t.status === "received" ? "received" : "cancelled"} ${t.received_at.toLocaleString("es-ES")} by ${t.received_by}` : ""}
+          {tr("Sent")} {t.created_at.toLocaleString("es-ES")}{t.by ? ` ${tr("by")} ${t.by}` : ""}
+          {t.received_at ? ` · ${t.status === "received" ? tr("received") : tr("cancelled")} ${t.received_at.toLocaleString("es-ES")} ${tr("by")} ${t.received_by}` : ""}
         </span>
       </p>
       {t.note && <p>{t.note}</p>}
       <div className="table-wrap"><table>
-        <thead><tr><th>Model</th><th>Colour</th><th>Size</th><th>Barcode</th><th className="num">Pairs</th></tr></thead>
+        <thead><tr><th>{tr("Model")}</th><th>{tr("Colour")}</th><th>{tr("Size")}</th><th>{tr("Barcode")}</th><th className="num">{tr("Pairs")}</th></tr></thead>
         <tbody>
           {lines.map((l) => (
             <tr key={l.barcode}>
@@ -53,10 +55,10 @@ export default async function TransferPage({ params }: { params: Promise<{ id: s
       {t.status === "sent" && (
         <p className="row">
           {can(user, "transfers.receive") && (
-            <form action={receiveTransfer.bind(null, id)}><button>Mark as received at {t.to_name}</button></form>
+            <form action={receiveTransfer.bind(null, id)}><button>{tr("Mark as received at {place}", { place: t.to_name })}</button></form>
           )}
           {can(user, "transfers.create") && (
-            <form action={cancelTransfer.bind(null, id)}><button className="secondary">Cancel (put back in {t.from_name})</button></form>
+            <form action={cancelTransfer.bind(null, id)}><button className="secondary">{tr("Cancel (put back in {place})", { place: t.from_name })}</button></form>
           )}
         </p>
       )}
