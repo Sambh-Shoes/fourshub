@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { shopifyConfig } from "@/lib/shopify";
 import { Page } from "@/components/Nav";
 import { CompareForm } from "./CompareForm";
+import { PushForm } from "./PushForm";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -15,7 +16,7 @@ export default async function ShopifyPage() {
     <Page user={user} active="/shopify">
       <h1>Shopify</h1>
       <p className="muted">
-        Compares fourshub with the online shop (www.fours.es). For now this only reads: nothing is sent to Shopify.
+        Compares fourshub with the online shop (www.fours.es). Comparing only reads. Sending stock is switched off until you turn it on (see below).
         Items are matched by SKU.
       </p>
       {!configured && (
@@ -25,6 +26,7 @@ export default async function ShopifyPage() {
         </div>
       )}
       <CompareForm />
+      {configured && <PushForm syncOn={process.env.SHOPIFY_SYNC === "on"} />}
     </Page>
   );
 }
