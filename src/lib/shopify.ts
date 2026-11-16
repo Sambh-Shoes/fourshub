@@ -212,3 +212,46 @@ export async function pushStock(cfg: ShopifyConfig, changes: StockChange[], dead
   }
   return result;
 }
+
+export type ShopifyOrder = {
+  id: string;
+  name: string;
+  createdAt: string;
+  cancelled: boolean;
+  lines: { id: string; sku: string | null; qty: number }[]; // qty = pairs still on the order (after cancellations and returns)
+};
+
+/** Orders created or changed since `sinceIso`, newest first. Needs the read_orders scope. */
+export async function fetchOrders(cfg: ShopifyConfig, sinceIso: string): Promise<ShopifyOrder[]> {
+  const out: ShopifyOrder[] = [];
+  let after: string | null = null;
+  for (let page = 0; page < 50; page++) {
+    const data: {
+      orders: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        nodes: {
+          id: string; name: string; createdAt: string; cancelledAt: string | null;
+          lineItems: { nodes: { id: string; sku: string | null; quantity: number; currentQuantity: number }[] };
+        }[];
+      };
+    } = await gql(
+      cfg,
+      `query($after: String, $q: String!) {
+        orders(first: 50, after: $after, query: $q, sortKey: CREATED_AT, reverse: true) {
+          pageInfo { hasNextPage endCursor }
+          nodes { id name createdAt cancelledAt lineItems(first: 100) { nodes { id sku quantity currentQuantity } } }
+        }
+      }`,
+      { after, q: `updated_at:>='${sinceIso}'` },
+    );
+    for (const o of data.orders.nodes) {
+      out.push({
+        id: o.id, name: o.name, createdAt: o.createdAt, cancelled: o.cancelledAt !== null,
+        lines: o.lineItems.nodes.map((l) => ({ id: l.id, sku: l.sku?.trim() || null, qty: l.currentQuantity ?? l.quantity })),
+      });
+    }
+    if (!data.orders.pageInfo.hasNextPage) break;
+    after = data.orders.pageInfo.endCursor;
+  }
+  return out;
+}

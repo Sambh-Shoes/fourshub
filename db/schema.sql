@@ -141,3 +141,21 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS weekly_hours numeric(4,1);
 -- so it is the key that matches a fourshub variant to a Shopify variant.
 ALTER TABLE variants ADD COLUMN IF NOT EXISTS sku text;
 CREATE INDEX IF NOT EXISTS variants_sku_idx ON variants(sku);
+
+-- Online orders from Shopify that have taken pairs out of stock. One row per order, so an order is never
+-- applied twice; a later change to the order (cancelled, a pair refunded) returns pairs from the same places.
+CREATE TABLE IF NOT EXISTS online_orders (
+  shopify_id  text PRIMARY KEY,
+  name        text NOT NULL,                  -- the number shown to the customer, e.g. #FOURS1041
+  created_at  timestamptz NOT NULL,
+  cancelled   boolean NOT NULL DEFAULT false,
+  applied_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS online_order_lines (
+  shopify_line_id text PRIMARY KEY,
+  order_id        text NOT NULL REFERENCES online_orders(shopify_id) ON DELETE CASCADE,
+  sku             text NOT NULL,               -- matched to variants.sku when applied (no link, so a re-import never fails)
+  qty             int NOT NULL,                -- pairs the order needs now
+  taken           jsonb NOT NULL DEFAULT '[]', -- [["ALM",1],["JAU",2]]: where the pairs came from, in order
+  missing         int NOT NULL DEFAULT 0       -- pairs no location had when the order was applied
+);

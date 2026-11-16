@@ -81,3 +81,21 @@ approved on the store) and `SHOPIFY_SYNC=on` in Vercel. Leave it off until fours
 because the numbers replace Shopify's. Shopify only writes an item if its stock is still what was read
 (`changeFromQuantity`), so an online sale in between is never overwritten. Items without a SKU, with a SKU used
 twice, or not counted by Shopify are skipped. Start with the "how many items" box set to a small number.
+
+### Online orders into fourshub (off by default)
+
+The **Online orders** section on the Shopify page takes the pairs of Shopify orders out of fourshub's stock:
+from the **warehouse first**, then from the shop with the most pairs of that item (ties by location code).
+Stock never goes below zero: pairs no location has are reported as "not found in any location".
+A cancelled order, or a returned pair, puts the pairs back where they came from. Every order is applied once
+(`online_orders`, `online_order_lines`); each stock change is logged in `stock_moves`.
+
+It needs the read scope `read_orders` (a new app version in the Dev Dashboard, approved on the store) and:
+
+| Variable | Value |
+| --- | --- |
+| `SHOPIFY_ORDERS_FROM` | the day you stop using Odoo, like `2026-12-01`. Orders before it are ignored: Odoo already counted them (or, for older online orders, never did and the fresh Odoo backup has to be loaded first). |
+| `SHOPIFY_ORDERS` | `on` to allow applying. Previewing needs only `SHOPIFY_ORDERS_FROM`. |
+
+Run it from the page (Preview, tick the box, Apply). Do not turn it on while Odoo is still the live system:
+a later Odoo import replaces the stock, so applied orders would be counted twice or lost.
