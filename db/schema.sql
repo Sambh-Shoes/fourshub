@@ -159,3 +159,58 @@ CREATE TABLE IF NOT EXISTS online_order_lines (
   taken           jsonb NOT NULL DEFAULT '[]', -- [["ALM",1],["JAU",2]]: where the pairs came from, in order
   missing         int NOT NULL DEFAULT 0       -- pairs no location had when the order was applied
 );
+
+-- Customers with a name (the walk-in "Simplified Invoice Partner" of Odoo is not one: those sales have no customer).
+CREATE TABLE IF NOT EXISTS customers (
+  id         serial PRIMARY KEY,
+  name       text NOT NULL,
+  email      text,
+  phone      text,
+  street     text,
+  zip        text,
+  city       text,
+  vat        text,
+  points     numeric(10,2) NOT NULL DEFAULT 0,   -- loyalty points ("Fours Loyalty")
+  active     boolean NOT NULL DEFAULT true,
+  odoo_id    int UNIQUE
+);
+
+-- Sales history from the shops (read-only records). Lines carry the SKU and name as sold, with no link to
+-- variants, so a new product import never breaks them.
+CREATE TABLE IF NOT EXISTS sales (
+  id          serial PRIMARY KEY,
+  odoo_id     int UNIQUE,
+  number      text NOT NULL,                     -- ticket number, e.g. Shop/0251
+  reference   text,                              -- POS reference, e.g. Order 00032-001-0001
+  location_id int REFERENCES locations(id),
+  customer_id int REFERENCES customers(id),
+  cashier     text,
+  sold_at     timestamptz NOT NULL,
+  total       numeric(10,2) NOT NULL,            -- incl. VAT, EUR (negative for a refund)
+  tax         numeric(10,2) NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS sales_sold_at_idx ON sales(sold_at);
+CREATE INDEX IF NOT EXISTS sales_customer_idx ON sales(customer_id);
+
+CREATE TABLE IF NOT EXISTS sale_lines (
+  id         serial PRIMARY KEY,
+  sale_id    int NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
+  sku        text,
+  name       text NOT NULL,
+  qty        numeric(10,2) NOT NULL,             -- negative for a returned pair
+  unit_price numeric(10,2) NOT NULL,
+  discount   numeric(5,2) NOT NULL DEFAULT 0,    -- percent
+  total      numeric(10,2) NOT NULL,             -- incl. VAT
+  cost       numeric(10,2)
+);
+CREATE INDEX IF NOT EXISTS sale_lines_sale_idx ON sale_lines(sale_id);
+CREATE INDEX IF NOT EXISTS sale_lines_sku_idx ON sale_lines(sku);
+
+CREATE TABLE IF NOT EXISTS sale_payments (
+  id      serial PRIMARY KEY,
+  sale_id int NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
+  method  text NOT NULL,                         -- cash or card
+  amount  numeric(10,2) NOT NULL,
+  paid_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS sale_payments_sale_idx ON sale_payments(sale_id);
