@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { Page } from "@/components/Nav";
 import { ImportForm } from "./ImportForm";
 import { SalesImportForm } from "./SalesImportForm";
+import { PicturesImportForm } from "./PicturesImportForm";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -17,6 +18,7 @@ export default async function ImportPage() {
         Odoo backup just before you switch over. Employees and working hours are not touched.</p>
       <ImportForm />
       <SalesImportForm />
+      <PicturesImportForm />
     </Page>
   );
 }

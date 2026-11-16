@@ -256,38 +256,3 @@ export async function fetchOrders(cfg: ShopifyConfig, sinceIso: string): Promise
   return out;
 }
 
-/** Every variant's picture (its own, else the product's main one), keyed by SKU. Read-only. */
-export async function fetchShopifyImages(cfg: ShopifyConfig, timeoutMs = 180_000): Promise<{ sku: string; url: string }[]> {
-  const q = `{ productVariants { edges { node { sku image { url } product { featuredMedia { preview { image { url } } } } } } } }`;
-  const started = await gql<{ bulkOperationRunQuery: { bulkOperation: { id: string } | null; userErrors: { message: string }[] } }>(
-    cfg, `mutation($q: String!) { bulkOperationRunQuery(query: $q, groupObjects: false) { bulkOperation { id status } userErrors { message } } }`, { q });
-  const { bulkOperation, userErrors } = started.bulkOperationRunQuery;
-  if (!bulkOperation) throw new Error(`Shopify could not start the export: ${userErrors.map((e) => e.message).join("; ") || "unknown reason"}. If another export is running, try again in a minute.`);
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, 2000));
-    const { bulkOperation: op } = await gql<{ bulkOperation: { status: string; errorCode: string | null; url: string | null } | null }>(
-      cfg, `query($id: ID!) { bulkOperation(id: $id) { status errorCode url } }`, { id: bulkOperation.id });
-    if (!op) throw new Error("Shopify lost track of the export.");
-    if (op.status === "COMPLETED") {
-      if (!op.url) return [];
-      const file = await fetch(op.url);
-      if (!file.ok) throw new Error(`Could not download the export (${file.status}).`);
-      return parseImagesJsonl(await file.text());
-    }
-    if (["FAILED", "CANCELED", "EXPIRED"].includes(op.status)) throw new Error(`The Shopify export ${op.status.toLowerCase()}${op.errorCode ? ` (${op.errorCode})` : ""}.`);
-  }
-  throw new Error("The Shopify export is taking too long. Try again in a minute.");
-}
-
-export function parseImagesJsonl(text: string): { sku: string; url: string }[] {
-  const out = new Map<string, string>();
-  for (const raw of text.split("\n")) {
-    if (!raw.trim()) continue;
-    const l = JSON.parse(raw) as { sku?: string | null; image?: { url?: string } | null; product?: { featuredMedia?: { preview?: { image?: { url?: string } | null } | null } | null } };
-    const sku = l.sku?.trim();
-    const url = l.image?.url ?? l.product?.featuredMedia?.preview?.image?.url;
-    if (sku && url) out.set(sku, url);
-  }
-  return [...out].map(([sku, url]) => ({ sku, url }));
-}

@@ -243,9 +243,11 @@ CREATE TABLE IF NOT EXISTS loyalty_moves (
 CREATE INDEX IF NOT EXISTS loyalty_moves_customer_idx ON loyalty_moves(customer_id);
 ALTER TABLE sales ADD COLUMN IF NOT EXISTS receipt jsonb;                                -- the ticket as printed, for reprints
 
--- Shoe pictures, read from Shopify and matched by SKU. Kept apart from variants so an Odoo re-import never loses them.
-CREATE TABLE IF NOT EXISTS item_images (
-  sku text PRIMARY KEY,
-  url text NOT NULL,
-  updated_at timestamptz NOT NULL DEFAULT now()
+-- Shoe pictures from Odoo (small copies), kept by Odoo product id with no link to products,
+-- so a product re-import never loses them.
+CREATE TABLE IF NOT EXISTS product_images (
+  odoo_id int PRIMARY KEY,
+  mime    text NOT NULL,
+  data    bytea NOT NULL
 );
+DROP TABLE IF EXISTS item_images;

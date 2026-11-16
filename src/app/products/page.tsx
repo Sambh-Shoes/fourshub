@@ -4,7 +4,6 @@ import { requireUser } from "@/lib/auth";
 import { one, query } from "@/lib/db";
 import { getCategories, getLocations } from "@/lib/data";
 import { euro } from "@/lib/sizes";
-import { thumb } from "@/lib/images";
 import { Page } from "@/components/Nav";
 import { can } from "@/lib/permissions";
 
@@ -30,10 +29,10 @@ export default async function Products({ searchParams }: { searchParams: Promise
   const [locations, categories] = await Promise.all([getLocations(), getCategories()]);
   const rows = await query<{
     id: number; name: string; reference: string | null; category: string | null; price: string;
-    active: boolean; image: string | null; colours: string | null; stock: Record<string, number> | null; total: string;
+    active: boolean; image: number | null; colours: string | null; stock: Record<string, number> | null; total: string;
   }>(
     `SELECT p.id, p.name, p.reference, c.name AS category, p.price, p.active,
-            (SELECT i.url FROM variants v JOIN item_images i ON i.sku = v.sku WHERE v.product_id = p.id ORDER BY v.id LIMIT 1) AS image,
+            (SELECT i.odoo_id FROM product_images i WHERE i.odoo_id = p.odoo_id) AS image,
             (SELECT string_agg(DISTINCT v.colour, ', ') FROM variants v WHERE v.product_id = p.id) AS colours,
             (SELECT jsonb_object_agg(x.location_id, x.qty) FROM (
                SELECT s.location_id, sum(s.qty) AS qty FROM stock s JOIN variants v ON v.id = s.variant_id
@@ -85,7 +84,7 @@ export default async function Products({ searchParams }: { searchParams: Promise
             <tr key={p.id}>
               <td>
                 <div className="till-item">
-                  {p.image && <img className="thumb" src={thumb(p.image)!} alt="" loading="lazy" />}
+                  {p.image && <img className="thumb" src={`/img/${p.image}`} alt="" loading="lazy" />}
                   <div>
                     <Link href={`/products/${p.id}`}>{p.name}</Link>
                     {p.reference && <div className="muted small">{p.reference}</div>}
