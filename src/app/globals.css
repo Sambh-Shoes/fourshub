@@ -108,3 +108,5 @@ button.secondary, .button.secondary { background: #fff; color: var(--accent); }
   main { padding: 0; max-width: none; }
   .receipt { width: 72mm; padding: 0; }
 }
+.till-item { display: flex; align-items: center; gap: 10px; }
+.thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; background: #eee; flex: none; }
