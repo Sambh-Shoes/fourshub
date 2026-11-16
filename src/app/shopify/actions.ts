@@ -2,7 +2,7 @@
 
 import { requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { fetchShopifyImages, fetchShopifyVariants, pushStock, shopifyConfig } from "@/lib/shopify";
+import { fetchShopifyVariants, pushStock, shopifyConfig } from "@/lib/shopify";
 import { compare, type Comparison, type FoursVariant, type Row } from "@/lib/shopifyCompare";
 import { planStockPush } from "@/lib/shopifyPush";
 
@@ -93,24 +93,3 @@ export async function pushStockToShopify(_prev: PushState, form: FormData): Prom
   }
 }
 
-export type PicturesState = { error?: string; loaded?: number; matched?: number } | null;
-
-/** Reads the pictures from Shopify and keeps them by SKU. Changes nothing in Shopify. */
-export async function loadPictures(): Promise<PicturesState> {
-  const a = await adminAndConfig();
-  if ("error" in a) return { error: a.error };
-  try {
-    const images = await fetchShopifyImages(a.cfg);
-    for (let i = 0; i < images.length; i += 1000) {
-      const part = images.slice(i, i + 1000);
-      await query(
-        `INSERT INTO item_images (sku, url) SELECT * FROM unnest($1::text[], $2::text[])
-         ON CONFLICT (sku) DO UPDATE SET url = EXCLUDED.url, updated_at = now()`,
-        [part.map((x) => x.sku), part.map((x) => x.url)]);
-    }
-    const m = await query<{ n: number }>("SELECT count(*)::int AS n FROM variants v JOIN item_images i ON i.sku = v.sku");
-    return { loaded: images.length, matched: m[0]?.n ?? 0 };
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Loading the pictures failed." };
-  }
-}

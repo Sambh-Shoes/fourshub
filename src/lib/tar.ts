@@ -16,3 +16,20 @@ export function readTgz(buf: Buffer): Record<string, string> {
   }
   return files;
 }
+
+/** Like readTgz, but keeps the raw bytes (for pictures). */
+export function readTgzBinary(buf: Buffer): Record<string, Buffer> {
+  const tar = zlib.gunzipSync(buf);
+  const files: Record<string, Buffer> = {};
+  let pos = 0;
+  while (pos + 512 <= tar.length) {
+    const header = tar.subarray(pos, pos + 512);
+    const name = header.subarray(0, 100).toString("utf8").replace(/\0.*$/s, "");
+    if (!name) break;
+    const size = parseInt(header.subarray(124, 136).toString("utf8").replace(/\0.*$/s, "").trim() || "0", 8);
+    const type = String.fromCharCode(header[156]);
+    if (type === "0" || type === "\0") files[name.replace(/^\.\//, "")] = Buffer.from(tar.subarray(pos + 512, pos + 512 + size));
+    pos += 512 + Math.ceil(size / 512) * 512;
+  }
+  return files;
+}

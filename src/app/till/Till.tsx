@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { QUICK_DISCOUNTS, STAFF_MAX_DISCOUNT, euroText, priceCart, settle } from "@/lib/till";
-import { thumb } from "@/lib/images";
 import type { Receipt } from "@/lib/receipt";
 import { completeSale, createCustomer, findCustomers, searchItems, type CustomerHit, type ItemHit } from "./actions";
 import { ReceiptView } from "./Receipt";
@@ -140,7 +139,7 @@ export function Till({ locations, defaultLocationId, canChoose, live }: { locati
               <thead><tr><th>Item</th><th>Colour</th><th>Size</th><th className="num">Price</th><th className="num">In {shopName}</th><th /></tr></thead>
               <tbody>{hits.map((h) => (
                 <tr key={h.variantId}>
-                  <td><div className="till-item">{h.image && <img className="thumb" src={thumb(h.image)!} alt="" loading="lazy" />}<div>{h.name}{h.reference && <div className="muted small">{h.reference}</div>}</div></div></td><td>{h.colour}</td><td>{h.size}</td>
+                  <td><div className="till-item">{h.image && <img className="thumb" src={`/img/${h.image}`} alt="" loading="lazy" />}<div>{h.name}{h.reference && <div className="muted small">{h.reference}</div>}</div></div></td><td>{h.colour}</td><td>{h.size}</td>
                   <td className="num">{euroText(h.priceCents)}</td>
                   <td className="num">{h.here > 0 ? h.here : <span className="badge warn">0</span>}{h.here === 0 && h.elsewhere > 0 && <div className="muted small">{h.elsewhere} elsewhere</div>}</td>
                   <td><button onClick={() => add(h)}>Add</button></td>
@@ -158,7 +157,7 @@ export function Till({ locations, defaultLocationId, canChoose, live }: { locati
                 const l = lines[i];
                 return (
                   <tr key={l.item.variantId}>
-                    <td><div className="till-item">{l.item.image && <img className="thumb" src={thumb(l.item.image)!} alt="" />}<div>{l.item.name}<div className="muted small">{[l.item.colour, l.item.size].filter(Boolean).join(" · ")} {l.item.here === 0 && <span className="badge warn">system shows 0 here</span>}</div></div></div></td>
+                    <td><div className="till-item">{l.item.image && <img className="thumb" src={`/img/${l.item.image}`} alt="" />}<div>{l.item.name}<div className="muted small">{[l.item.colour, l.item.size].filter(Boolean).join(" · ")} {l.item.here === 0 && <span className="badge warn">system shows 0 here</span>}</div></div></div></td>
                     <td>
                       <button className="secondary" onClick={() => setLines((c) => c.map((x, j) => (j === i ? { ...x, qty: Math.max(1, x.qty - 1) } : x)))}>−</button>
                       <span style={{ margin: "0 8px" }}>{l.qty}</span>
