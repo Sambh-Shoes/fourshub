@@ -10,7 +10,7 @@ import { saveSale } from "@/lib/tillSale";
 
 export type ItemHit = {
   variantId: number; name: string; reference: string | null; colour: string | null; size: string | null;
-  barcode: string | null; priceCents: number; here: number; elsewhere: number;
+  barcode: string | null; image: string | null; priceCents: number; here: number; elsewhere: number;
 };
 
 /** A scanned barcode or SKU finds its item; words find items by name, reference, colour. */
@@ -20,15 +20,15 @@ export async function searchItems(q: string, locationId: number): Promise<ItemHi
   if (text.length < 2) return [];
   const words = text.split(/\s+/).slice(0, 5).map((w) => `%${w.replace(/[%_\\]/g, "")}%`);
   return query<ItemHit>(
-    `SELECT v.id AS "variantId", p.name, p.reference, v.colour, v.size, v.barcode,
+    `SELECT v.id AS "variantId", p.name, p.reference, v.colour, v.size, v.barcode, i.url AS image,
             round(coalesce(v.price, p.price) * 100)::int AS "priceCents",
             coalesce(sum(s.qty) FILTER (WHERE s.location_id = $2), 0)::int AS here,
             coalesce(sum(s.qty) FILTER (WHERE s.location_id <> $2), 0)::int AS elsewhere
-       FROM variants v JOIN products p ON p.id = v.product_id LEFT JOIN stock s ON s.variant_id = v.id
+       FROM variants v JOIN products p ON p.id = v.product_id LEFT JOIN stock s ON s.variant_id = v.id LEFT JOIN item_images i ON i.sku = v.sku
       WHERE v.active AND p.active
         AND (v.barcode = $1 OR v.sku = $1 OR v.id = (SELECT variant_id FROM barcode_aliases WHERE barcode = $1)
              OR (p.name || ' ' || coalesce(p.reference, '') || ' ' || coalesce(v.colour, '') || ' ' || coalesce(v.sku, '')) ILIKE ALL($3::text[]))
-      GROUP BY v.id, p.id ORDER BY p.name, v.colour, v.size LIMIT 40`,
+      GROUP BY v.id, p.id, i.url ORDER BY p.name, v.colour, v.size LIMIT 40`,
     [text, locationId, words]);
 }
 
