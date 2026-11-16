@@ -6,6 +6,7 @@ import { logoutAction } from "@/app/login/actions";
 export function Nav({ user, active }: { user: CurrentUser; active: string }) {
   const links = [
     ["/", "Home"],
+    ...(can(user, "till.use") ? [["/till", "Till"]] : []),
     ["/products", "Products"],
     ["/stock", "Stock"],
     ["/transfers", "Transfers"],

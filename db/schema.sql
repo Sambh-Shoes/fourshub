@@ -214,3 +214,31 @@ CREATE TABLE IF NOT EXISTS sale_payments (
   paid_at timestamptz
 );
 CREATE INDEX IF NOT EXISTS sale_payments_sale_idx ON sale_payments(sale_id);
+
+-- The till. Sales rung up in fourshub are rows in the same tables as the Odoo history, marked source = 'till'.
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS source      text NOT NULL DEFAULT 'odoo';   -- 'odoo' history or 'till'
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS till_ref    text;                            -- made by the till per ticket, so a double click never sells twice
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS user_id     int REFERENCES users(id);       -- who rang it up
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS approved_by int REFERENCES users(id);       -- the manager who approved a big discount
+CREATE UNIQUE INDEX IF NOT EXISTS sales_till_ref_idx ON sales(till_ref) WHERE till_ref IS NOT NULL;
+ALTER TABLE sale_lines ADD COLUMN IF NOT EXISTS variant_id int;                          -- no link, so a product import never fails
+
+-- Ticket numbers run in a row per shop and year, like GRA/2026/000001.
+CREATE TABLE IF NOT EXISTS ticket_counters (
+  location_id int NOT NULL REFERENCES locations(id),
+  year        int NOT NULL,
+  last        int NOT NULL DEFAULT 0,
+  PRIMARY KEY (location_id, year)
+);
+
+-- Every change to a customer's loyalty points, so the balance can always be explained.
+CREATE TABLE IF NOT EXISTS loyalty_moves (
+  id          serial PRIMARY KEY,
+  customer_id int NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  sale_id     int REFERENCES sales(id) ON DELETE CASCADE,
+  points      numeric(10,2) NOT NULL,           -- positive earned, negative spent
+  reason      text NOT NULL,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS loyalty_moves_customer_idx ON loyalty_moves(customer_id);
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS receipt jsonb;                                -- the ticket as printed, for reprints

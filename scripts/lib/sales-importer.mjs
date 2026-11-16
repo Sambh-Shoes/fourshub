@@ -101,7 +101,9 @@ export async function runSalesImport(db, source) {
 
   await db.query("BEGIN");
   try {
-    await db.query("TRUNCATE sale_payments, sale_lines, sales, customers RESTART IDENTITY");
+    const live = await db.query("SELECT 1 FROM sales WHERE source = 'till' LIMIT 1");
+    if (live.rowCount) throw new Error("fourshub already has sales rung up at the till. Importing the Odoo history again would delete them, so it is blocked.");
+    await db.query("TRUNCATE loyalty_moves, sale_payments, sale_lines, sales, customers RESTART IDENTITY");
 
     await db.query(
       `INSERT INTO customers (name, email, phone, street, zip, city, vat, points, active, odoo_id)
