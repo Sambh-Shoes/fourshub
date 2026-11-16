@@ -78,3 +78,33 @@ button.secondary, .button.secondary { background: #fff; color: var(--accent); }
 .login { max-width: 360px; margin: 10vh auto; }
 .login form { display: flex; flex-direction: column; gap: 12px; }
 .sizebox { border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px; cursor: pointer; background: #fff; }
+
+/* The till */
+.till { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+.till > .notice { grid-column: 1 / -1; margin: 0; }
+.till-main, .till-side { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.till-main > .card, .till-side > .card { margin: 0; }
+.till-total { font-size: 40px; font-weight: 800; line-height: 1.1; }
+.till-change { font-size: 22px; font-weight: 700; color: var(--accent); }
+.till-pay { width: 100%; font-size: 22px; padding: 14px; margin-top: 8px; }
+.till-new { display: flex; flex-direction: column; gap: 8px; }
+.till input, .till select, .till button { min-height: 40px; }
+@media (max-width: 900px) { .till { grid-template-columns: 1fr; } }
+
+/* The ticket: 80 mm, the same on screen and on paper */
+.receipt { width: 300px; max-width: 100%; margin: 0 auto; background: #fff; color: #000; padding: 12px; font: 13px/1.35 ui-monospace, Menlo, Consolas, monospace; }
+.receipt table { width: 100%; border: 0; border-collapse: collapse; }
+.receipt td { padding: 1px 0; border: 0; vertical-align: top; }
+.receipt .num { text-align: right; white-space: nowrap; padding-left: 8px; }
+.receipt hr { border: 0; border-top: 1px dashed #000; margin: 8px 0; }
+.receipt p { margin: 6px 0; }
+.receipt-head { text-align: center; }
+.receipt-sub { font-size: 11px; }
+.receipt-total td { font-weight: 800; font-size: 15px; }
+.receipt-practice { text-align: center; font-weight: 800; border: 2px solid #000; padding: 4px; }
+@media print {
+  body { background: #fff; }
+  nav.top, .no-print { display: none !important; }
+  main { padding: 0; max-width: none; }
+  .receipt { width: 72mm; padding: 0; }
+}

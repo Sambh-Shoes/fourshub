@@ -141,3 +141,104 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS weekly_hours numeric(4,1);
 -- so it is the key that matches a fourshub variant to a Shopify variant.
 ALTER TABLE variants ADD COLUMN IF NOT EXISTS sku text;
 CREATE INDEX IF NOT EXISTS variants_sku_idx ON variants(sku);
+
+-- Online orders from Shopify that have taken pairs out of stock. One row per order, so an order is never
+-- applied twice; a later change to the order (cancelled, a pair refunded) returns pairs from the same places.
+CREATE TABLE IF NOT EXISTS online_orders (
+  shopify_id  text PRIMARY KEY,
+  name        text NOT NULL,                  -- the number shown to the customer, e.g. #FOURS1041
+  created_at  timestamptz NOT NULL,
+  cancelled   boolean NOT NULL DEFAULT false,
+  applied_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS online_order_lines (
+  shopify_line_id text PRIMARY KEY,
+  order_id        text NOT NULL REFERENCES online_orders(shopify_id) ON DELETE CASCADE,
+  sku             text NOT NULL,               -- matched to variants.sku when applied (no link, so a re-import never fails)
+  qty             int NOT NULL,                -- pairs the order needs now
+  taken           jsonb NOT NULL DEFAULT '[]', -- [["ALM",1],["JAU",2]]: where the pairs came from, in order
+  missing         int NOT NULL DEFAULT 0       -- pairs no location had when the order was applied
+);
+
+-- Customers with a name (the walk-in "Simplified Invoice Partner" of Odoo is not one: those sales have no customer).
+CREATE TABLE IF NOT EXISTS customers (
+  id         serial PRIMARY KEY,
+  name       text NOT NULL,
+  email      text,
+  phone      text,
+  street     text,
+  zip        text,
+  city       text,
+  vat        text,
+  points     numeric(10,2) NOT NULL DEFAULT 0,   -- loyalty points ("Fours Loyalty")
+  active     boolean NOT NULL DEFAULT true,
+  odoo_id    int UNIQUE
+);
+
+-- Sales history from the shops (read-only records). Lines carry the SKU and name as sold, with no link to
+-- variants, so a new product import never breaks them.
+CREATE TABLE IF NOT EXISTS sales (
+  id          serial PRIMARY KEY,
+  odoo_id     int UNIQUE,
+  number      text NOT NULL,                     -- ticket number, e.g. Shop/0251
+  reference   text,                              -- POS reference, e.g. Order 00032-001-0001
+  location_id int REFERENCES locations(id),
+  customer_id int REFERENCES customers(id),
+  cashier     text,
+  sold_at     timestamptz NOT NULL,
+  total       numeric(10,2) NOT NULL,            -- incl. VAT, EUR (negative for a refund)
+  tax         numeric(10,2) NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS sales_sold_at_idx ON sales(sold_at);
+CREATE INDEX IF NOT EXISTS sales_customer_idx ON sales(customer_id);
+
+CREATE TABLE IF NOT EXISTS sale_lines (
+  id         serial PRIMARY KEY,
+  sale_id    int NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
+  sku        text,
+  name       text NOT NULL,
+  qty        numeric(10,2) NOT NULL,             -- negative for a returned pair
+  unit_price numeric(10,2) NOT NULL,
+  discount   numeric(5,2) NOT NULL DEFAULT 0,    -- percent
+  total      numeric(10,2) NOT NULL,             -- incl. VAT
+  cost       numeric(10,2)
+);
+CREATE INDEX IF NOT EXISTS sale_lines_sale_idx ON sale_lines(sale_id);
+CREATE INDEX IF NOT EXISTS sale_lines_sku_idx ON sale_lines(sku);
+
+CREATE TABLE IF NOT EXISTS sale_payments (
+  id      serial PRIMARY KEY,
+  sale_id int NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
+  method  text NOT NULL,                         -- cash or card
+  amount  numeric(10,2) NOT NULL,
+  paid_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS sale_payments_sale_idx ON sale_payments(sale_id);
+
+-- The till. Sales rung up in fourshub are rows in the same tables as the Odoo history, marked source = 'till'.
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS source      text NOT NULL DEFAULT 'odoo';   -- 'odoo' history or 'till'
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS till_ref    text;                            -- made by the till per ticket, so a double click never sells twice
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS user_id     int REFERENCES users(id);       -- who rang it up
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS approved_by int REFERENCES users(id);       -- the manager who approved a big discount
+CREATE UNIQUE INDEX IF NOT EXISTS sales_till_ref_idx ON sales(till_ref) WHERE till_ref IS NOT NULL;
+ALTER TABLE sale_lines ADD COLUMN IF NOT EXISTS variant_id int;                          -- no link, so a product import never fails
+
+-- Ticket numbers run in a row per shop and year, like GRA/2026/000001.
+CREATE TABLE IF NOT EXISTS ticket_counters (
+  location_id int NOT NULL REFERENCES locations(id),
+  year        int NOT NULL,
+  last        int NOT NULL DEFAULT 0,
+  PRIMARY KEY (location_id, year)
+);
+
+-- Every change to a customer's loyalty points, so the balance can always be explained.
+CREATE TABLE IF NOT EXISTS loyalty_moves (
+  id          serial PRIMARY KEY,
+  customer_id int NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  sale_id     int REFERENCES sales(id) ON DELETE CASCADE,
+  points      numeric(10,2) NOT NULL,           -- positive earned, negative spent
+  reason      text NOT NULL,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS loyalty_moves_customer_idx ON loyalty_moves(customer_id);
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS receipt jsonb;                                -- the ticket as printed, for reprints

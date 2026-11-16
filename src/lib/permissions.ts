@@ -9,6 +9,9 @@ export const PERMISSIONS = {
   "transfers.receive": "Receive stock from another shop",
   "users.manage": "Manage employees and their access",
   "hours.manage": "See and correct everyone's working hours",
+  "reports.view": "See sales reports and customers",
+  "till.use": "Use the till (sell and print tickets)",
+  "discounts.high": "Give discounts above 30% at the till",
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -23,8 +26,8 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 export const ROLE_DEFAULTS: Record<Role, Permission[]> = {
   admin: Object.keys(PERMISSIONS) as Permission[],
-  manager: ["products.edit", "prices.edit", "stock.adjust", "transfers.create", "transfers.receive", "hours.manage"],
-  shop: ["transfers.create", "transfers.receive"],
+  manager: ["products.edit", "prices.edit", "stock.adjust", "transfers.create", "transfers.receive", "hours.manage", "reports.view", "till.use", "discounts.high"],
+  shop: ["transfers.create", "transfers.receive", "till.use"],
   warehouse: ["products.edit", "stock.adjust", "transfers.create", "transfers.receive"],
 };
 

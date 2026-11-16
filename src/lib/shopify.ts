@@ -19,7 +19,9 @@ export type ShopifyVariant = {
   productTitle: string;
   status: string; // ACTIVE, DRAFT or ARCHIVED
   tracked: boolean;
+  inventoryItemId: string | null;
   stock: Record<string, number>; // Shopify location name -> pairs available
+  locationIds: Record<string, string>; // Shopify location name -> its id
 };
 
 export function shopifyConfig(env: Record<string, string | undefined> = process.env): ShopifyConfig | null {
@@ -37,18 +39,20 @@ async function getToken(cfg: ShopifyConfig) {
   if (cached && cached.expiresAt - Date.now() > 5 * 60_000) return cached.token;
   const res = await fetch(`https://${cfg.store}/admin/oauth/access_token`, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
     body: new URLSearchParams({ grant_type: "client_credentials", client_id: cfg.clientId, client_secret: cfg.clientSecret }),
   });
   if (!res.ok) {
-    throw new Error(`Shopify did not give a token (${res.status}). Check SHOPIFY_STORE, SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET, and that the app is installed on the store.`);
+    // Shopify says why in a short message, for example "Missing or invalid client secret". It never echoes the secret.
+    const why = await res.json().then((b: { error_description?: string }) => b.error_description, () => undefined);
+    throw new Error(`Shopify did not give a token (${res.status}${why ? `: ${why}` : ""}). Check SHOPIFY_STORE, SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET, and that the app is installed on the store.`);
   }
   const body = (await res.json()) as { access_token: string; expires_in: number };
   globalForToken.shopifyToken = { token: body.access_token, expiresAt: Date.now() + body.expires_in * 1000 };
   return body.access_token;
 }
 
-async function gql<T>(cfg: ShopifyConfig, query: string, variables: Record<string, unknown> = {}): Promise<T> {
+export async function gql<T>(cfg: ShopifyConfig, query: string, variables: Record<string, unknown> = {}): Promise<T> {
   const res = await fetch(`https://${cfg.store}/admin/api/${API_VERSION}/graphql.json`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": await getToken(cfg) },
@@ -83,7 +87,7 @@ type BulkLine = {
   value?: string;
   product?: { title?: string; status?: string };
   inventoryItem?: { id?: string; tracked?: boolean };
-  location?: { name?: string };
+  location?: { id?: string; name?: string };
   quantities?: { name: string; quantity: number }[];
 };
 
@@ -104,7 +108,9 @@ export function parseBulkJsonl(text: string): ShopifyVariant[] {
         productTitle: line.product?.title ?? "",
         status: line.product?.status ?? "",
         tracked: line.inventoryItem?.tracked ?? false,
+        inventoryItemId: line.inventoryItem?.id ?? null,
         stock: {},
+        locationIds: {},
       });
       if (line.inventoryItem?.id) byItem.set(line.inventoryItem.id, line.id);
       continue;
@@ -114,6 +120,7 @@ export function parseBulkJsonl(text: string): ShopifyVariant[] {
     if (line.location?.name) {
       const available = line.quantities?.find((q) => q.name === "available")?.quantity ?? 0;
       variant.stock[line.location.name] = available;
+      if (line.location.id) variant.locationIds[line.location.name] = line.location.id;
     } else if (line.value && !variant.barcode) {
       variant.barcode = line.value;
     }
@@ -152,4 +159,99 @@ export async function fetchShopifyVariants(cfg: ShopifyConfig, timeoutMs = 180_0
     }
   }
   throw new Error("The Shopify export is taking too long. Try again in a minute.");
+}
+
+export type StockChange = {
+  sku: string;
+  inventoryItemId: string;
+  locationId: string;
+  from: number; // what Shopify has now; Shopify only writes if it still has this
+  to: number;
+};
+
+export type StockPushResult = { applied: number; failed: { sku: string; message: string }[]; stoppedEarly: boolean };
+
+const SET_STOCK = (key: string) => `mutation SetStock($input: InventorySetQuantitiesInput!) @idempotent(key: "${key}") {
+  inventorySetQuantities(input: $input) { userErrors { field message } }
+}`;
+
+async function setBatch(cfg: ShopifyConfig, changes: StockChange[]) {
+  const data = await gql<{ inventorySetQuantities: { userErrors: { message: string }[] } }>(
+    cfg,
+    SET_STOCK(crypto.randomUUID()),
+    {
+      input: {
+        name: "available",
+        reason: "correction",
+        referenceDocumentUri: "fourshub://stock-sync",
+        // changeFromQuantity makes Shopify refuse the write if the stock moved since we read it
+        // (an online sale in the meantime), so a push never overwrites a sale.
+        quantities: changes.map((c) => ({ inventoryItemId: c.inventoryItemId, locationId: c.locationId, quantity: c.to, changeFromQuantity: c.from })),
+      },
+    },
+  );
+  return data.inventorySetQuantities.userErrors.map((e) => e.message);
+}
+
+/** Writes the new stock to Shopify in batches; a batch that is refused is retried one item at a time. */
+export async function pushStock(cfg: ShopifyConfig, changes: StockChange[], deadlineMs = 240_000): Promise<StockPushResult> {
+  const started = Date.now();
+  const result: StockPushResult = { applied: 0, failed: [], stoppedEarly: false };
+  const BATCH = 100;
+  for (let i = 0; i < changes.length; i += BATCH) {
+    if (Date.now() - started > deadlineMs) { result.stoppedEarly = true; break; }
+    const batch = changes.slice(i, i + BATCH);
+    const errors = await setBatch(cfg, batch);
+    if (errors.length === 0) { result.applied += batch.length; continue; }
+    for (const c of batch) {
+      if (Date.now() - started > deadlineMs) { result.stoppedEarly = true; break; }
+      const one = await setBatch(cfg, [c]);
+      if (one.length === 0) result.applied++;
+      else result.failed.push({ sku: c.sku, message: one[0] });
+    }
+  }
+  return result;
+}
+
+export type ShopifyOrder = {
+  id: string;
+  name: string;
+  createdAt: string;
+  cancelled: boolean;
+  lines: { id: string; sku: string | null; qty: number }[]; // qty = pairs still on the order (after cancellations and returns)
+};
+
+/** Orders created or changed since `sinceIso`, newest first. Needs the read_orders scope. */
+export async function fetchOrders(cfg: ShopifyConfig, sinceIso: string): Promise<ShopifyOrder[]> {
+  const out: ShopifyOrder[] = [];
+  let after: string | null = null;
+  for (let page = 0; page < 50; page++) {
+    const data: {
+      orders: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        nodes: {
+          id: string; name: string; createdAt: string; cancelledAt: string | null;
+          lineItems: { nodes: { id: string; sku: string | null; quantity: number; currentQuantity: number }[] };
+        }[];
+      };
+    } = await gql(
+      cfg,
+      `query($after: String, $q: String!) {
+        orders(first: 50, after: $after, query: $q, sortKey: CREATED_AT, reverse: true) {
+          pageInfo { hasNextPage endCursor }
+          nodes { id name createdAt cancelledAt lineItems(first: 100) { nodes { id sku quantity currentQuantity } } }
+        }
+      }`,
+      { after, q: `updated_at:>='${sinceIso}'` },
+    );
+    for (const o of data.orders.nodes) {
+      out.push({
+        id: o.id, name: o.name, createdAt: o.createdAt, cancelled: o.cancelledAt !== null,
+        lines: o.lineItems.nodes.map((l) => ({ id: l.id, sku: l.sku?.trim() || null, qty: l.currentQuantity ?? l.quantity })),
+      });
+    }
+    if (!data.orders.pageInfo.hasNextPage) break;
+    after = data.orders.pageInfo.endCursor;
+  }
+  return out;
 }

@@ -6,10 +6,12 @@ import { logoutAction } from "@/app/login/actions";
 export function Nav({ user, active }: { user: CurrentUser; active: string }) {
   const links = [
     ["/", "Home"],
+    ...(can(user, "till.use") ? [["/till", "Till"]] : []),
     ["/products", "Products"],
     ["/stock", "Stock"],
     ["/transfers", "Transfers"],
     ["/hours", "Hours"],
+    ...(can(user, "reports.view") ? [["/sales", "Sales"], ["/customers", "Customers"]] : []),
     ...(can(user, "users.manage") ? [["/users", "Employees"]] : []),
     ...(user.role === "admin" ? [["/shopify", "Shopify"]] : []),
   ];
