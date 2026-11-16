@@ -109,4 +109,12 @@ button.secondary, .button.secondary { background: #fff; color: var(--accent); }
   .receipt { width: 72mm; padding: 0; }
 }
 .till-item { display: flex; align-items: center; gap: 10px; }
-.thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; background: #eee; flex: none; }
+.seg { display: inline-flex; border: 1px solid var(--line, #ccc); border-radius: 8px; overflow: hidden; }
+.seg a { padding: 8px 14px; text-decoration: none; color: inherit; }
+.seg a.on { background: var(--accent, #2f5d50); color: #fff; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-top: 12px; }
+.tile { display: block; background: #fff; border: 1px solid var(--line, #e3e0d8); border-radius: 10px; overflow: hidden; text-decoration: none; color: inherit; }
+.tile img, .tile-none { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: #f1efe9; }
+.tile-none { display: flex; align-items: center; justify-content: center; color: #999; font-size: 13px; }
+.tile-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 3px; }
+.thumb { width: 72px; height: 72px; object-fit: cover; border-radius: 6px; background: #eee; flex: none; }

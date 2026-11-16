@@ -24,7 +24,7 @@ for await (const line of rl) {
   if (line === "\\.") break;
   const c = line.split("\t");
   const get = (n) => c[cols.indexOf(n)];
-  if (get("res_model") !== "product.template" || get("res_field") !== "image_128" || !get("store_fname") || get("store_fname") === "\\N") continue;
+  if (get("res_model") !== "product.template" || get("res_field") !== "image_256" || !get("store_fname") || get("store_fname") === "\\N") continue;
   const mime = get("mimetype");
   found.set(Number(get("res_id")), { fname: get("store_fname"), ext: mime === "image/png" ? "png" : "jpg" });
 }

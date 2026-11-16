@@ -10,7 +10,7 @@ import { can } from "@/lib/permissions";
 export const dynamic = "force-dynamic";
 const PAGE_SIZE = 50;
 
-type Search = { q?: string; cat?: string; instock?: string; inactive?: string; page?: string };
+type Search = { q?: string; cat?: string; instock?: string; inactive?: string; page?: string; view?: string };
 
 export default async function Products({ searchParams }: { searchParams: Promise<Search> }) {
   const user = await requireUser();
@@ -52,15 +52,24 @@ export default async function Products({ searchParams }: { searchParams: Promise
   );
   const more = rows.length > PAGE_SIZE;
   const shown = rows.slice(0, PAGE_SIZE);
+  const tiles = sp.view === "tiles";
+  const viewLink = (v: string) => `/products?${new URLSearchParams({ ...sp, view: v, page: "1" } as Record<string, string>)}`;
   const link = (p: number) => `/products?${new URLSearchParams({ ...sp, page: String(p) } as Record<string, string>)}`;
 
   return (
     <Page user={user} active="/products">
       <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
         <h1>Products</h1>
-        {can(user, "products.edit") && <Link className="button" href="/products/new">New product</Link>}
+        <div className="row">
+          <span className="seg">
+            <Link className={tiles ? "" : "on"} href={viewLink("list")}>List</Link>
+            <Link className={tiles ? "on" : ""} href={viewLink("tiles")}>Tiles</Link>
+          </span>
+          {can(user, "products.edit") && <Link className="button" href="/products/new">New product</Link>}
+        </div>
       </div>
       <form className="card row">
+        {tiles && <input type="hidden" name="view" value="tiles" />}
         <label style={{ flex: 1, minWidth: 220 }}>Name, reference or barcode<input name="q" defaultValue={q} autoFocus /></label>
         <label>Category
           <select name="cat" defaultValue={sp.cat ?? ""}>
@@ -73,7 +82,27 @@ export default async function Products({ searchParams }: { searchParams: Promise
         <button>Search</button>
       </form>
 
-      <div className="table-wrap"><table>
+      {tiles && (
+        <div className="tiles">
+          {shown.map((p) => (
+            <Link key={p.id} href={`/products/${p.id}`} className="tile">
+              {p.image ? <img src={`/img/${p.image}`} alt="" loading="lazy" /> : <div className="tile-none">no picture</div>}
+              <div className="tile-body">
+                <b>{p.name}</b>
+                {p.reference && <div className="muted small">{p.reference}</div>}
+                <div className="small">{p.colours}</div>
+                <div className="row" style={{ justifyContent: "space-between" }}>
+                  <span>{euro(p.price)}</span>
+                  <span className={Number(p.total) > 0 ? "" : "muted"}>{p.total} pairs</span>
+                </div>
+                {!p.active && <span className="badge off">archived</span>}
+              </div>
+            </Link>
+          ))}
+          {shown.length === 0 && <p className="muted">No products found.</p>}
+        </div>
+      )}
+      {!tiles && <div className="table-wrap"><table>
         <thead><tr>
           <th>Model</th><th>Category</th><th>Colours</th><th className="num">Price</th>
           {locations.map((l) => <th key={l.id} className="num" title={l.name}>{l.code}</th>)}
@@ -104,7 +133,7 @@ export default async function Products({ searchParams }: { searchParams: Promise
           ))}
           {shown.length === 0 && <tr><td colSpan={5 + locations.length} className="muted">No products found.</td></tr>}
         </tbody>
-      </table></div>
+      </table></div>}
       <p className="row">
         {page > 1 && <Link className="button secondary" href={link(page - 1)}>← Previous</Link>}
         {more && <Link className="button secondary" href={link(page + 1)}>Next →</Link>}
