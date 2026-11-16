@@ -54,8 +54,9 @@ Odoo stock locations are mapped in `scripts/import-odoo.mjs` (`LOCATION_MAP`).
 
 ## Shopify (www.fours.es)
 
-Step 1 only reads: the **Shopify** page (owner only) compares fourshub with the online shop and lists
-what differs. Nothing is sent to Shopify yet. Items match by **SKU** (Odoo's variant code, `4SSxxxxx`,
+The **Shopify** page (owner only) compares fourshub with the online shop and lists what differs. The
+comparison only reads. The online shop sells the **total** of all shops and the warehouse, and Shopify keeps
+that total at its "Fours Shoes" location, so totals are compared. Items match by **SKU** (Odoo's variant code, `4SSxxxxx`,
 which is also the SKU in Shopify); `variants.sku` is filled by the Odoo import.
 
 Access is an app made in the Shopify **Dev Dashboard** (dev.shopify.com), installed on the store. It
@@ -71,3 +72,12 @@ swaps its client id and secret for a token that lasts 24 hours. Set these in Ver
 The app needs the read scopes `read_products`, `read_inventory` and `read_locations`.
 Shopify locations are linked to shops in `src/lib/shopifyCompare.ts` (`SHOPIFY_LOCATIONS`):
 Fours Shoes = Gracia, Fours Jaume = Jaume I, Fours Galla Placidia = Placidia, Warehouse = warehouse.
+
+### Sending stock to Shopify (off by default)
+
+The same page can make Shopify's stock equal fourshub's: each item gets the total at "Fours Shoes" and 0 at
+the other Shopify locations. It needs the extra scope `write_inventory` (a new app version in the Dev Dashboard,
+approved on the store) and `SHOPIFY_SYNC=on` in Vercel. Leave it off until fourshub's stock is current,
+because the numbers replace Shopify's. Shopify only writes an item if its stock is still what was read
+(`changeFromQuantity`), so an online sale in between is never overwritten. Items without a SKU, with a SKU used
+twice, or not counted by Shopify are skipped. Start with the "how many items" box set to a small number.
