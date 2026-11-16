@@ -99,3 +99,17 @@ It needs the read scope `read_orders` (a new app version in the Dev Dashboard, a
 
 Run it from the page (Preview, tick the box, Apply). Do not turn it on while Odoo is still the live system:
 a later Odoo import replaces the stock, so applied orders would be counted twice or lost.
+
+## Customers and sales from Odoo
+
+The import page has a second form, **Customers and sales**. It loads, from the same Odoo backup:
+- the **named customers** (the walk-in "Simplified Invoice Partner" of Odoo is not one: those tickets have no customer) with their **loyalty points**,
+- the shops' **sales history** (tickets, lines and payments) as read-only records. Lines keep the SKU and name as sold, with no link to products, so a new product import never breaks them. Change given back is kept as a negative cash payment, so each ticket's payments add up to its total.
+
+Make both import files from a backup's `dump.sql` (one command, no hidden macOS files):
+
+    node scripts/make-import-files.mjs path/to/dump.sql odoo-files
+
+It writes `odoo-products.tgz` (for "Load products from Odoo") and `odoo-sales.tgz` (for "Customers and sales") into `odoo-files/`. The files hold customer data: git ignores them, keep them off shared drives.
+
+The **Sales** screen (monthly totals per shop, VAT, cash and card, and a CSV per month for the accountant) and the **Customers** screen need the permission `reports.view` (owner always; managers by default).
