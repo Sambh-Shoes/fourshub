@@ -2,17 +2,22 @@ import Link from "next/link";
 import { can } from "@/lib/permissions";
 import type { CurrentUser } from "@/lib/auth";
 import { logoutAction } from "@/app/login/actions";
+import { getLang } from "@/lib/lang";
+import { makeT } from "@/lib/i18n";
+import { LangSwitch } from "./LangSwitch";
 
-export function Nav({ user, active }: { user: CurrentUser; active: string }) {
+export async function Nav({ user, active }: { user: CurrentUser; active: string }) {
+  const lang = await getLang();
+  const t = makeT(lang);
   const links = [
-    ["/", "Home"],
-    ...(can(user, "till.use") ? [["/till", "Till"]] : []),
-    ["/products", "Products"],
-    ["/stock", "Stock"],
-    ["/transfers", "Transfers"],
-    ["/hours", "Hours"],
-    ...(can(user, "reports.view") ? [["/sales", "Sales"], ["/customers", "Customers"]] : []),
-    ...(can(user, "users.manage") ? [["/users", "Employees"]] : []),
+    ["/", t("Home")],
+    ...(can(user, "till.use") ? [["/till", t("Till")]] : []),
+    ["/products", t("Products")],
+    ["/stock", t("Stock")],
+    ["/transfers", t("Transfers")],
+    ["/hours", t("Hours")],
+    ...(can(user, "reports.view") ? [["/sales", t("Sales")], ["/customers", t("Customers")]] : []),
+    ...(can(user, "users.manage") ? [["/users", t("Employees")]] : []),
     ...(user.role === "admin" ? [["/shopify", "Shopify"]] : []),
   ];
   return (
@@ -23,7 +28,8 @@ export function Nav({ user, active }: { user: CurrentUser; active: string }) {
       ))}
       <span className="me">
         {user.name}{user.location_name ? ` · ${user.location_name}` : ""}
-        <form action={logoutAction}><button>Sign out</button></form>
+        <LangSwitch current={lang} />
+        <form action={logoutAction}><button>{t("Sign out")}</button></form>
       </span>
     </nav>
   );

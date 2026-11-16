@@ -5,6 +5,7 @@ import { one, query } from "@/lib/db";
 import { getCategories, getLocations } from "@/lib/data";
 import { euro } from "@/lib/sizes";
 import { Page } from "@/components/Nav";
+import { getT } from "@/lib/lang";
 import { can } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ type Search = { q?: string; cat?: string; instock?: string; inactive?: string; p
 
 export default async function Products({ searchParams }: { searchParams: Promise<Search> }) {
   const user = await requireUser();
+  const t = await getT();
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
   const page = Math.max(1, Number(sp.page) || 1);
@@ -59,54 +61,54 @@ export default async function Products({ searchParams }: { searchParams: Promise
   return (
     <Page user={user} active="/products">
       <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-        <h1>Products</h1>
+        <h1>{t("Products")}</h1>
         <div className="row">
           <span className="seg">
-            <Link className={tiles ? "" : "on"} href={viewLink("list")}>List</Link>
-            <Link className={tiles ? "on" : ""} href={viewLink("tiles")}>Tiles</Link>
+            <Link className={tiles ? "" : "on"} href={viewLink("list")}>{t("List")}</Link>
+            <Link className={tiles ? "on" : ""} href={viewLink("tiles")}>{t("Tiles")}</Link>
           </span>
-          {can(user, "products.edit") && <Link className="button" href="/products/new">New product</Link>}
+          {can(user, "products.edit") && <Link className="button" href="/products/new">{t("New product")}</Link>}
         </div>
       </div>
       <form className="card row">
         {tiles && <input type="hidden" name="view" value="tiles" />}
-        <label style={{ flex: 1, minWidth: 220 }}>Name, reference or barcode<input name="q" defaultValue={q} autoFocus /></label>
-        <label>Category
+        <label style={{ flex: 1, minWidth: 220 }}>{t("Name, reference or barcode")}<input name="q" defaultValue={q} autoFocus /></label>
+        <label>{t("Category")}
           <select name="cat" defaultValue={sp.cat ?? ""}>
-            <option value="">All</option>
+            <option value="">{t("All")}</option>
             {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </label>
-        <label className="check"><input type="checkbox" name="instock" value="1" defaultChecked={sp.instock === "1"} /> Only in stock</label>
-        <label className="check"><input type="checkbox" name="inactive" value="1" defaultChecked={sp.inactive === "1"} /> Show archived</label>
-        <button>Search</button>
+        <label className="check"><input type="checkbox" name="instock" value="1" defaultChecked={sp.instock === "1"} /> {t("Only in stock")}</label>
+        <label className="check"><input type="checkbox" name="inactive" value="1" defaultChecked={sp.inactive === "1"} /> {t("Show archived")}</label>
+        <button>{t("Search")}</button>
       </form>
 
       {tiles && (
         <div className="tiles">
           {shown.map((p) => (
             <Link key={p.id} href={`/products/${p.id}`} className="tile">
-              {p.image ? <img src={`/img/${p.image}`} alt="" loading="lazy" /> : <div className="tile-none">no picture</div>}
+              {p.image ? <img src={`/img/${p.image}`} alt="" loading="lazy" /> : <div className="tile-none">{t("no picture")}</div>}
               <div className="tile-body">
                 <b>{p.name}</b>
                 {p.reference && <div className="muted small">{p.reference}</div>}
                 <div className="small">{p.colours}</div>
                 <div className="row" style={{ justifyContent: "space-between" }}>
                   <span>{euro(p.price)}</span>
-                  <span className={Number(p.total) > 0 ? "" : "muted"}>{p.total} pairs</span>
+                  <span className={Number(p.total) > 0 ? "" : "muted"}>{Number(p.total) === 1 ? t("1 pair") : t("{n} pairs", { n: p.total })}</span>
                 </div>
-                {!p.active && <span className="badge off">archived</span>}
+                {!p.active && <span className="badge off">{t("archived")}</span>}
               </div>
             </Link>
           ))}
-          {shown.length === 0 && <p className="muted">No products found.</p>}
+          {shown.length === 0 && <p className="muted">{t("No products found.")}</p>}
         </div>
       )}
       {!tiles && <div className="table-wrap"><table>
         <thead><tr>
-          <th>Model</th><th>Category</th><th>Colours</th><th className="num">Price</th>
+          <th>{t("Model")}</th><th>{t("Category")}</th><th>{t("Colours")}</th><th className="num">{t("Price")}</th>
           {locations.map((l) => <th key={l.id} className="num" title={l.name}>{l.code}</th>)}
-          <th className="num">Total</th>
+          <th className="num">{t("Total")}</th>
         </tr></thead>
         <tbody>
           {shown.map((p) => (
@@ -117,7 +119,7 @@ export default async function Products({ searchParams }: { searchParams: Promise
                   <div>
                     <Link href={`/products/${p.id}`}>{p.name}</Link>
                     {p.reference && <div className="muted small">{p.reference}</div>}
-                    {!p.active && <span className="badge off">archived</span>}
+                    {!p.active && <span className="badge off">{t("archived")}</span>}
                   </div>
                 </div>
               </td>
@@ -131,12 +133,12 @@ export default async function Products({ searchParams }: { searchParams: Promise
               <td className="num"><b>{p.total}</b></td>
             </tr>
           ))}
-          {shown.length === 0 && <tr><td colSpan={5 + locations.length} className="muted">No products found.</td></tr>}
+          {shown.length === 0 && <tr><td colSpan={5 + locations.length} className="muted">{t("No products found.")}</td></tr>}
         </tbody>
       </table></div>}
       <p className="row">
-        {page > 1 && <Link className="button secondary" href={link(page - 1)}>← Previous</Link>}
-        {more && <Link className="button secondary" href={link(page + 1)}>Next →</Link>}
+        {page > 1 && <Link className="button secondary" href={link(page - 1)}>← {t("Previous")}</Link>}
+        {more && <Link className="button secondary" href={link(page + 1)}>{t("Next")} →</Link>}
       </p>
     </Page>
   );

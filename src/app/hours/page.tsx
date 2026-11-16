@@ -4,6 +4,7 @@ import { query } from "@/lib/db";
 import { can } from "@/lib/permissions";
 import { clock, hm, thisMonth, TZ } from "@/lib/hours";
 import { Page } from "@/components/Nav";
+import { getT } from "@/lib/lang";
 import { ClockCard } from "@/components/ClockCard";
 import { EntryForm } from "./EntryForm";
 
@@ -15,6 +16,7 @@ const MINUTES = `extract(epoch FROM coalesce(e.clock_out, now()) - e.clock_in) /
 
 export default async function Hours({ searchParams }: { searchParams: Promise<{ month?: string; user?: string }> }) {
   const me = await requireUser();
+  const t = await getT();
   const sp = await searchParams;
   const month = /^\d{4}-\d{2}$/.test(sp.month ?? "") ? sp.month! : thisMonth();
   const manager = can(me, "hours.manage");
@@ -29,13 +31,13 @@ export default async function Hours({ searchParams }: { searchParams: Promise<{ 
 
   return (
     <Page user={me} active="/hours">
-      <h1>Working hours</h1>
+      <h1>{t("Working hours")}</h1>
       <ClockCard user={me} />
       <div className="row" style={{ alignItems: "center" }}>
         <Link className="button secondary" href={link(shift(-1))}>←</Link>
         <b>{monthLabel}</b>
         <Link className="button secondary" href={link(shift(1))}>→</Link>
-        {manager && <a className="button secondary" href={`/hours/export?month=${month}`}>Download for the accountant (CSV)</a>}
+        {manager && <a className="button secondary" href={`/hours/export?month=${month}`}>{t("Download for the accountant (CSV)")}</a>}
       </div>
       {manager && !userId ? <Summary month={month} link={link} /> : <Detail month={month} userId={userId ?? me.id} manager={manager} back={manager ? link(month, null) : null} />}
     </Page>
@@ -43,6 +45,7 @@ export default async function Hours({ searchParams }: { searchParams: Promise<{ 
 }
 
 async function Summary({ month, link }: { month: string; link: (m: string, u?: number | null) => string }) {
+  const t = await getT();
   const rows = await query<{ id: number; name: string; location: string | null; weekly_hours: string | null; minutes: string; days: string; open: boolean }>(
     `SELECT u.id, u.name, l.name AS location, u.weekly_hours,
             coalesce(sum(${MINUTES}) FILTER (WHERE ${IN_MONTH}), 0) AS minutes,
@@ -53,18 +56,18 @@ async function Summary({ month, link }: { month: string; link: (m: string, u?: n
     [month]);
   return (
     <>
-      <h2>Everyone this month</h2>
+      <h2>{t("Everyone this month")}</h2>
       <div className="table-wrap"><table>
-        <thead><tr><th>Employee</th><th>Works at</th><th className="num">Days worked</th><th className="num">Hours</th><th className="num">Contract (h/week)</th><th>Now</th></tr></thead>
+        <thead><tr><th>{t("Employee")}</th><th>{t("Works at")}</th><th className="num">{t("Days worked")}</th><th className="num">{t("Hours")}</th><th className="num">{t("Contract (h/week)")}</th><th>{t("Now")}</th></tr></thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.id}>
               <td><Link href={link(month, r.id)}>{r.name}</Link></td>
-              <td>{r.location ?? "All places"}</td>
+              <td>{r.location ?? t("All places")}</td>
               <td className="num">{r.days}</td>
               <td className="num"><b>{hm(r.minutes)}</b></td>
               <td className="num">{r.weekly_hours ?? ""}</td>
-              <td>{r.open && <span className="badge">working</span>}</td>
+              <td>{r.open && <span className="badge">{t("working")}</span>}</td>
             </tr>
           ))}
         </tbody>
@@ -74,6 +77,7 @@ async function Summary({ month, link }: { month: string; link: (m: string, u?: n
 }
 
 async function Detail({ month, userId, manager, back }: { month: string; userId: number; manager: boolean; back: string | null }) {
+  const t = await getT();
   const [person] = await query<{ name: string }>("SELECT name FROM users WHERE id = $1", [userId]);
   const entries = await query<{
     id: number; day: string; clock_in: Date; clock_out: Date | null; minutes: string; location: string | null;
@@ -97,39 +101,39 @@ async function Detail({ month, userId, manager, back }: { month: string; userId:
 
   return (
     <>
-      <h2>{back && <><Link href={back}>Everyone</Link> / </>}{person?.name}: {hm(total)} this month</h2>
+      <h2>{back && <><Link href={back}>{t("Everyone")}</Link> / </>}{person?.name}: {t("{time} this month", { time: hm(total) })}</h2>
       <div className="table-wrap"><table>
-        <thead><tr><th>Day</th><th>In</th><th>Out</th><th className="num">Time</th><th>Where</th>{manager && <th>Correct</th>}</tr></thead>
+        <thead><tr><th>{t("Day")}</th><th>{t("In")}</th><th>{t("Out")}</th><th className="num">{t("Time")}</th><th>{t("Where")}</th>{manager && <th>{t("Correct")}</th>}</tr></thead>
         <tbody>
           {entries.map((e) => (
             <tr key={e.id}>
               <td style={{ textTransform: "capitalize" }}>{e.day}</td>
               <td>{clock(e.clock_in)}</td>
-              <td>{e.clock_out ? clock(e.clock_out) : <span className="badge">working</span>}</td>
+              <td>{e.clock_out ? clock(e.clock_out) : <span className="badge">{t("working")}</span>}</td>
               <td className="num">{hm(e.minutes)}</td>
-              <td className="small">{e.location}{Number(e.changes) > 0 && <> <span className="badge warn">corrected</span></>}</td>
+              <td className="small">{e.location}{Number(e.changes) > 0 && <> <span className="badge warn">{t("corrected")}</span></>}</td>
               {manager && <td><EntryForm entryId={e.id} userId={userId} clockIn={e.in_local} clockOut={e.out_local ?? undefined} /></td>}
             </tr>
           ))}
-          {entries.length === 0 && <tr><td colSpan={6} className="muted">No hours this month.</td></tr>}
+          {entries.length === 0 && <tr><td colSpan={6} className="muted">{t("No hours this month.")}</td></tr>}
         </tbody>
       </table></div>
       {manager && (
         <div className="card" style={{ marginTop: 16 }}>
-          <h2 style={{ marginTop: 0 }}>Add a missing entry</h2>
+          <h2 style={{ marginTop: 0 }}>{t("Add a missing entry")}</h2>
           <EntryForm entryId={null} userId={userId} />
         </div>
       )}
       {changes.length > 0 && (
         <>
-          <h2>Corrections</h2>
+          <h2>{t("Corrections")}</h2>
           <div className="table-wrap"><table>
-            <thead><tr><th>When</th><th>By</th><th>Before</th><th>After</th><th>Reason</th></tr></thead>
+            <thead><tr><th>{t("When")}</th><th>{t("By")}</th><th>{t("Before")}</th><th>{t("After")}</th><th>{t("Reason")}</th></tr></thead>
             <tbody>
               {changes.map((c, i) => (
                 <tr key={i}>
                   <td className="small">{fmt(c.changed_at)}</td><td>{c.by}</td>
-                  <td className="small">{c.old_in ? `${fmt(c.old_in)} → ${fmt(c.old_out)}` : "(added)"}</td>
+                  <td className="small">{c.old_in ? `${fmt(c.old_in)} → ${fmt(c.old_out)}` : t("(added)")}</td>
                   <td className="small">{fmt(c.new_in)} → {fmt(c.new_out)}</td><td>{c.reason}</td>
                 </tr>
               ))}

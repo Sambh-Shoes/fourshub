@@ -136,3 +136,4 @@ button.secondary:hover, .button.secondary:hover { background: var(--accent-soft)
 h1, h2, h3, .stat { font-variant-numeric: lining-nums; }
 .seg a.on { background: var(--accent); }
 tbody tr:hover td { background: #fdfcfa; }
+.lang { padding: 4px 8px; font-size: 12px; border-radius: 8px; border: 1px solid var(--line); background: #fff; min-height: 0; }

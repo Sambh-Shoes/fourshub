@@ -254,3 +254,6 @@ DROP TABLE IF EXISTS item_images;
 
 -- The name Odoo's sales history shows for this person (the cashier), so past sales and hours line up.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS sales_name text;
+
+-- Each person's chosen language for the screens (en, es or ru).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'en';
