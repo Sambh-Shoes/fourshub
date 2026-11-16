@@ -35,10 +35,10 @@ export function CompareForm() {
         <>
           <div className="notice">
             Checked in {state?.seconds}s. Shopify has {r.shopifyVariants.toLocaleString("es-ES")} items, fourshub has {r.foursVariants.toLocaleString("es-ES")}.
-            {" "}{r.matched.toLocaleString("es-ES")} match by SKU: {r.stockSame.toLocaleString("es-ES")} with the same stock, {r.stockDiffers.toLocaleString("es-ES")} with different stock.
+            {" "}{r.matched.toLocaleString("es-ES")} match by SKU: {r.stockSame.toLocaleString("es-ES")} with the same total stock, {r.stockDiffers.toLocaleString("es-ES")} with a different total.
             {r.unknownLocations.length > 0 && <> Shopify locations not linked to a shop: {r.unknownLocations.join(", ")}.</>}
           </div>
-          <RowsTable title="Different stock" hint="Same SKU, but the pairs in a location differ." total={r.stockDiffs.total} rows={r.stockDiffs.rows} />
+          <RowsTable title="Different stock" hint="Same SKU, but the total pairs differ. The online shop sells the total of all shops and the warehouse." total={r.stockDiffs.total} rows={r.stockDiffs.rows} />
           <RowsTable title="Only in Shopify" hint="SKU is in Shopify but not in fourshub." total={r.onlyShopify.total} rows={r.onlyShopify.rows} />
           <RowsTable
             title="In fourshub with stock, not in Shopify"
