@@ -38,6 +38,10 @@ export type Comparison = {
 const LIMIT = 200;
 const cap = (rows: Row[]) => ({ total: rows.length, rows: rows.slice(0, LIMIT) });
 const sum = (o: Record<string, number>) => Object.values(o).reduce((n, v) => n + v, 0);
+const where = (o: Record<string, number>) => {
+  const parts = Object.entries(o).filter(([, n]) => n !== 0).map(([k, n]) => `${k} ${n}`);
+  return parts.length ? parts.join(", ") : "none";
+};
 const shopifyLabel = (v: ShopifyVariant) => `${v.productTitle} · ${v.title}`;
 const foursLabel = (v: FoursVariant) => [v.name, v.colour, v.size].filter(Boolean).join(" · ");
 
@@ -66,14 +70,16 @@ export function compare(fours: FoursVariant[], shopify: ShopifyVariant[]): Compa
     if (!f) { onlyShopify.push({ sku, label: shopifyLabel(s), note: s.status }); continue; }
     matched++;
     if (!s.tracked) { stockSame++; continue; } // Shopify is not counting this one
-    const diffs: string[] = [];
-    for (const [name, code] of Object.entries(SHOPIFY_LOCATIONS)) {
-      const inShopify = s.stock[name] ?? 0;
-      const inFours = f.stock[code] ?? 0;
-      if (inShopify !== inFours) diffs.push(`${code}: Shopify ${inShopify}, fourshub ${inFours}`);
-    }
-    if (diffs.length) stockDiffs.push({ sku, label: foursLabel(f), note: diffs.join(" · ") });
-    else stockSame++;
+    // The online shop sells from the total of every shop and the warehouse, and Shopify keeps that total
+    // in one location, so compare totals and show where the pairs are in each system.
+    const shopifyTotal = sum(s.stock);
+    const foursTotal = sum(f.stock);
+    if (shopifyTotal === foursTotal) { stockSame++; continue; }
+    stockDiffs.push({
+      sku,
+      label: foursLabel(f),
+      note: `Shopify ${shopifyTotal} (${where(s.stock)}) · fourshub ${foursTotal} (${where(f.stock)})`,
+    });
   }
 
   const onlyFours: Row[] = [];
