@@ -17,7 +17,7 @@ export function Nav({ user, active }: { user: CurrentUser; active: string }) {
   ];
   return (
     <nav className="top">
-      <Link href="/" className="brand">fourshub</Link>
+      <Link href="/" className="brand" aria-label="Fours Barcelona"><img src="/logo.png" alt="Fours Barcelona" /></Link>
       {links.map(([href, label]) => (
         <Link key={href} href={href} className={active === href ? "on" : ""}>{label}</Link>
       ))}
