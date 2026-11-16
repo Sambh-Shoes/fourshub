@@ -44,6 +44,7 @@ export default async function Sales({ searchParams }: { searchParams: Promise<{ 
         <Link className="btn" href={`/sales?month=${shift(-1)}`}>←</Link>
         <strong>{monthLabel}</strong>
         <Link className="btn" href={`/sales?month=${shift(1)}`}>→</Link>
+        <Link className="btn" href={`/sales/people?month=${month}`}>By person</Link>
         <a className="btn" href={`/sales/export?month=${month}`}>Download for the accountant (CSV)</a>
       </p>
       <div className="table-wrap"><table>

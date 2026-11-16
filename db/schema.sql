@@ -251,3 +251,6 @@ CREATE TABLE IF NOT EXISTS product_images (
   data    bytea NOT NULL
 );
 DROP TABLE IF EXISTS item_images;
+
+-- The name Odoo's sales history shows for this person (the cashier), so past sales and hours line up.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS sales_name text;
